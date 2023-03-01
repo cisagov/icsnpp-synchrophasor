@@ -134,16 +134,7 @@ event SYNCHROPHASOR::DataFrame(c: connection,
                                numPMU: count,
                                phnmr: count,
                                annmr: count,
-                               dgnmr: count,
-                               triggerReason: count,
-                               unlockedTime: count,
-                               pmuTimeQuality: count,
-                               dataModified: bool,
-                               configChange: bool,
-                               pmuTriggerPickup: bool,
-                               dataSortingType: bool,
-                               pmuSyncError: bool,
-                               dataErrorIndicator: count) {
+                               dgnmr: count) {
     hook set_session(c);
 
     local info = c$synchrophasor;

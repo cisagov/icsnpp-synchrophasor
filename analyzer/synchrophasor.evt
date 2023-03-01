@@ -54,16 +54,7 @@ on SYNCHROPHASOR::DataFrame -> event SYNCHROPHASOR::DataFrame($conn,
                                                               self.numPMU,
                                                               self.phnmr,
                                                               self.annmr,
-                                                              self.dgnmr,
-                                                              self.stat.triggerReason,
-                                                              self.stat.unlockedTime,
-                                                              self.stat.pmuTimeQuality,
-                                                              self.stat.dataModified,
-                                                              self.stat.configChange,
-                                                              self.stat.pmuTriggerPickup,
-                                                              self.stat.dataSortingType,
-                                                              self.stat.pmuSyncError,
-                                                              self.stat.dataErrorIndicator);
+                                                              self.dgnmr);
 
 on SYNCHROPHASOR::HeaderFrame -> event SYNCHROPHASOR::HeaderFrame($conn,
                                                                   $is_orig,
