@@ -7,6 +7,10 @@ export {
         ts: time &log;
         uid: string &log;
         id: conn_id &log;
+
+        version : set[count] &log &optional;
+        data_stream_id : set[count] &log &optional;
+        data_frame_count : count &log;
     };
 
     global log_synchrophasor: event(rec: Info);
@@ -51,7 +55,7 @@ hook set_session(c: connection) {
     if ( c?$synchrophasor )
         return;
 
-    c$synchrophasor = Info($ts=network_time(), $uid=c$uid, $id=c$id);
+    c$synchrophasor = Info($ts=network_time(), $uid=c$uid, $id=c$id, $data_frame_count=0);
 }
 
 function emit_log(c: connection) {
@@ -73,6 +77,9 @@ event SYNCHROPHASOR::CommandFrame(c: connection,
     hook set_session(c);
 
     local info = c$synchrophasor;
+
+    add info$version[version];
+    add info$data_stream_id[dataStreamId];
 }
 
 event SYNCHROPHASOR::Config3Frame(c: connection,
@@ -90,6 +97,9 @@ event SYNCHROPHASOR::Config3Frame(c: connection,
         hook set_session(c);
 
         local info = c$synchrophasor;
+
+        add info$version[version];
+        add info$data_stream_id[dataStreamId];
     }
 }
 
@@ -108,6 +118,9 @@ event SYNCHROPHASOR::ConfigFrame(c: connection,
         hook set_session(c);
 
         local info = c$synchrophasor;
+
+        add info$version[version];
+        add info$data_stream_id[dataStreamId];
     }
 }
 
@@ -134,6 +147,11 @@ event SYNCHROPHASOR::DataFrame(c: connection,
     hook set_session(c);
 
     local info = c$synchrophasor;
+
+    add info$version[version];
+    add info$data_stream_id[dataStreamId];
+
+    info$data_frame_count += 1;
 }
 
 event SYNCHROPHASOR::HeaderFrame(c: connection,
@@ -146,6 +164,9 @@ event SYNCHROPHASOR::HeaderFrame(c: connection,
     hook set_session(c);
 
     local info = c$synchrophasor;
+
+    add info$version[version];
+    add info$data_stream_id[dataStreamId];
 }
 
 event connection_state_remove(c: connection) {
