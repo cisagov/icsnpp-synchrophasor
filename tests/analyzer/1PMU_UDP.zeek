@@ -4,4 +4,4 @@
 #
 # @TEST-DOC: Test synchrophasor analyzer with C37.118_1PMU_UDP.pcap
 
-@load scripts
+@load analyzer
