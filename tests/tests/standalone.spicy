@@ -1,7 +1,0 @@
-# @TEST-DOC: Test parsing behavior of SYNCHROPHASOR.
-#
-# @TEST-EXEC: spicyc ${DIST}/analyzer/synchrophasor.spicy -j -d -o synchrophasor.hlto
-#
-# TODO: Add/adapt standalone parsing tests here.
-# @TEST-EXEC: printf "test string" | spicy-dump -p SYNCHROPHASOR::Request synchrophasor.hlto >output 2>&1
-# @TEST-EXEC: TEST_DIFF_CANONIFIER= btest-diff output
