@@ -4,4 +4,4 @@
 #
 # @TEST-DOC: Test synchrophasor analyzer with C37.118_4in1PMU_TCP.pcap
 
-@load analyzer
+@load scripts
