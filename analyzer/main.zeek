@@ -19,15 +19,6 @@ export {
 
     global log_synchrophasor: event(rec: Info);
 
-    const FRAME_TYPE_CODES = {
-      [SYNCHROPHASOR::FrameTypeCode_DATA_FRAME] = "Data",
-      [SYNCHROPHASOR::FrameTypeCode_HEADER_FRAME] = "Header",
-      [SYNCHROPHASOR::FrameTypeCode_CONFIG_1_FRAME] = "Config 1",
-      [SYNCHROPHASOR::FrameTypeCode_CONFIG_2_FRAME] = "Config 2",
-      [SYNCHROPHASOR::FrameTypeCode_CONFIG_3_FRAME] = "Config 3",
-      [SYNCHROPHASOR::FrameTypeCode_COMMAND_FRAME] = "Command",
-    } &default = "unknown";
-
     const COMMAND_CODES_INITIALS = {
       [1] = "d", # turn off transmission of data frames
       [2] = "D", # turn on transmission of data frames
