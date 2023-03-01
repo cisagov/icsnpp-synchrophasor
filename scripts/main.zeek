@@ -10,7 +10,7 @@ export {
 
         version : set[count] &log &optional;
         data_stream_id : set[count] &log &optional;
-        data_frame_count : count &log;
+        data_frame_count : count &log &optional;
     };
 
     global log_synchrophasor: event(rec: Info);
