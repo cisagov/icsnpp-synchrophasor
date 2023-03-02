@@ -8,6 +8,7 @@ export {
         uid: string &log;
         id: conn_id &log;
 
+        proto : string &log &optional;
         version : set[count] &log &optional;
         data_stream_id : set[count] &log &optional;
         history : string &log &optional;
@@ -33,6 +34,7 @@ export {
 
 redef record connection += {
     synchrophasor: Info &optional;
+    synchrophasor_proto: string &optional;
 };
 
 const ports = {
@@ -46,6 +48,16 @@ event zeek_init() &priority=5 {
     Log::create_stream(SYNCHROPHASOR::LOG, [$columns=Info, $ev=log_synchrophasor, $path="synchrophasor"]);
 }
 
+event analyzer_confirmation(c: connection, atype: Analyzer::Tag, aid: count) &priority=5 {
+
+  if ( atype == Analyzer::ANALYZER_SPICY_SYNCHROPHASOR_TCP ) {
+    c$synchrophasor_proto = "tcp";
+  } else if ( atype == Analyzer::ANALYZER_SPICY_SYNCHROPHASOR_UDP ) {
+    c$synchrophasor_proto = "udp";
+  }
+
+}
+
 hook set_session(c: connection) {
     if ( c?$synchrophasor )
         return;
@@ -53,6 +65,7 @@ hook set_session(c: connection) {
     c$synchrophasor = Info($ts=network_time(),
                            $uid=c$uid,
                            $id=c$id,
+                           $proto="",
                            $version=set(),
                            $history="",
                            $data_stream_id=set(),
@@ -65,6 +78,9 @@ hook set_session(c: connection) {
 function emit_log(c: connection) {
     if ( ! c?$synchrophasor )
         return;
+
+    if (c?$synchrophasor_proto)
+      c$synchrophasor$proto = c$synchrophasor_proto;
 
     Log::write(SYNCHROPHASOR::LOG, c$synchrophasor);
     delete c$synchrophasor;
