@@ -294,7 +294,7 @@ function emit_synchrophasor_hdr_log(c: connection) {
     if (c?$synchrophasor_proto)
       c$synchrophasor_hdr$proto = c$synchrophasor_proto;
 
-    Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_COMMAND, c$synchrophasor_hdr);
+    Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_HEADER, c$synchrophasor_hdr);
     delete c$synchrophasor_hdr;
 }
 
@@ -306,7 +306,7 @@ function emit_synchrophasor_cfg_log(c: connection) {
     if (c?$synchrophasor_proto)
       c$synchrophasor_cfg$proto = c$synchrophasor_proto;
 
-    Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_COMMAND, c$synchrophasor_cfg);
+    Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_CONFIG, c$synchrophasor_cfg);
     delete c$synchrophasor_cfg;
 }
 
@@ -318,7 +318,7 @@ function emit_synchrophasor_data_log(c: connection) {
     if (c?$synchrophasor_proto)
       c$synchrophasor_data$proto = c$synchrophasor_proto;
 
-    Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_COMMAND, c$synchrophasor_data);
+    Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_DATA, c$synchrophasor_data);
     delete c$synchrophasor_data;
 }
 
