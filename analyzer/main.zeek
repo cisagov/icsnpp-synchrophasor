@@ -48,7 +48,7 @@ export {
 
         proto : string &log &optional;
         command : string &log &optional;
-        extframe : vector[count] &log &optional;
+        extframe : vector of count &log &optional;
     };
 
     # synchrophasor_hdr.log columns
