@@ -5,4 +5,4 @@ cmake-build-debug/
 *.swp
 *.tmp
 tests/.btest*
-tests/Traces/*.log
+tests/traces/*.log
