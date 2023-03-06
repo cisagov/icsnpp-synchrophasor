@@ -311,17 +311,7 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
     var annmr : uint16 = 0;
     var dgnmr : uint16 = 0;
 
-    stat : bitfield(16) {
-        triggerReason : 0..3;
-        unlockedTime : 4..5;
-        pmuTimeQuality : 6..8;
-        dataModified : 9;
-        configChange : 10;
-        pmuTriggerPickup : 11;
-        dataSortingType : 12;
-        pmuSyncError : 13;
-        dataErrorIndicator : 14..15;
-    } {
+    on %init {
         if ((header.dataStreamId in frms.streamSourceIdConfigFrameMap) &&
             (frms.streamSourceIdConfigFrameMap[header.dataStreamId].initialized == True)) {
             self.cfgFrame = frms.streamSourceIdConfigFrameMap[header.dataStreamId];
@@ -337,12 +327,25 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
     }
 
     data: PMUData(header, frms, self.cfgFrame, self.pmuCfg)[self.numPMU] if ((self?.cfgFrame) && (self?.pmuCfg) && (self.numPMU > 0));
+
     : bytes &eod; # any remaining unparsed data
 };
 
 public type PMUData = unit(header : FrameHeader, frms : Frames, cfgFrame : ConfigFrame, pmuCfg : PMUConfig) {
-  # TODO
+    stat : bitfield(16) {
+        triggerReason : 0..3;
+        unlockedTime : 4..5;
+        pmuTimeQuality : 6..8;
+        dataModified : 9;
+        configChange : 10;
+        pmuTriggerPickup : 11;
+        dataSortingType : 12;
+        pmuSyncError : 13;
+        dataErrorIndicator : 14..15;
+    };
+
 };
+
 
 # Fallback unit for incorrectly formatted frames #######################################################################
 type NotImplemented = unit(header : FrameHeader, frms : Frames, chk : uint16) {
