@@ -46,7 +46,7 @@ public type SyncField = unit() {
 };
 
 # C37.118.2-2011, 6.2.2 Time and message time quality ##################################################################
-type FracSec = unit(header : FrameHeader, frms : Frames) {
+public type FracSec = unit(header : FrameHeader, frms : Frames) {
     var fracSec  : real = 0.0;
 
     data : bitfield(32) {
@@ -97,7 +97,7 @@ public type HeaderFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
 };
 
 # C37.118.2-2011, 6.4 Word definitions unique to configuration frames 1 and 2, Table 9 #################################
-type ConfigFormat = unit() {
+public type ConfigFormat = unit() {
     format : bitfield(16) {
         phasorShape : 0;
         phasorFormat : 1;
@@ -106,6 +106,37 @@ type ConfigFormat = unit() {
         _ : 4..15;
     };
 } &convert=self.format;
+
+public type PhasorConversionFactor = unit() {
+    format : bitfield(32) {
+        phunit : 0..7;
+        phvalue : 8..31;
+    };
+} &convert=self.format;
+
+public type AnalogConversionFactor = unit() {
+    var analogFlags : uint8 = 0;
+    var userDefinedScaling : int32 = 0;
+    : bitfield(32) {
+        analogFlags : 0..7;
+        userDefinedScaling : 8..31;
+    } {
+        self.analogFlags = cast<uint8>($$.analogFlags);
+        self.userDefinedScaling = cast<int32>($$.userDefinedScaling);
+    }
+};
+
+public type DigitalStatusMaskWords = unit() {
+    normalStatusMask : uint16;
+    validInputsMask : uint16;
+};
+
+public type NominalLineFreq = unit() {
+    code : bitfield(16) {
+        fundamentalFreq : 0;
+        _ : 1..15;
+    };
+} &convert=self.code;
 
 # C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
 public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
@@ -121,7 +152,7 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
     }
     numPMU : uint16;
     PMUs: PMUConfig(frms)[self.numPMU];
-    dataRate : uint16;
+    dataRate : int16;
     : bytes &eod; # any remaining unparsed data
 
     on %done {
@@ -141,9 +172,9 @@ public type PMUConfig = unit(frms : Frames) {
     phnam : SimpleName[self.phnmr];
     annam : SimpleName[self.annmr];
     dgnam : SimpleName[16 * self.dgnmr];
-    phunit : uint32[self.phnmr];
-    anunit : uint32[self.annmr];
-    digunit : uint32[self.dgnmr];
+    phunit : PhasorConversionFactor[self.phnmr];
+    anunit : AnalogConversionFactor[self.annmr];
+    digunit : DigitalStatusMaskWords[self.dgnmr];
     fnom : uint16;
     cfgcnt : uint16;
 
@@ -152,6 +183,38 @@ public type PMUConfig = unit(frms : Frames) {
         frms.dataSourceIdPmuConfigMap[self.dataSourceId] = self;
     }
 };
+
+# C37.118.2-2011, 6.4 Word definitions unique to configuration frame 3, Table 11 #######################################
+public type PhasorScale = unit() {
+    flags : bitfield(16) {
+        _ : 0;
+        upsampledInterpolation : 1;
+        upsampledExtrapolation : 2;
+        downsampledReselection : 3;
+        downsampledFIRFilter : 4;
+        downsampledNoFIRFilter : 5;
+        filteredWithoutChangingSamplint : 6;
+        calibrationMagAdj : 7;
+        calibrationPhasAdj : 8;
+        rotationPhaseAdj : 9;
+        pseudoPhasorVal : 10;
+        _ : 11..14;
+        modAppl : 15;
+    };
+    typeInd : bitfield(8) {
+        phasorComponent : 0..2;
+        phasorType : 3;
+        _ : 4..7;
+    };
+    userDef : uint8;
+    scaleFactor : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
+    angleAdj : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
+};
+
+public type AnalogScale = unit() {
+    magScale : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
+    offset : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
+}
 
 # C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
 public type Config3Frame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
@@ -168,7 +231,7 @@ public type Config3Frame = unit(header : FrameHeader, frms : Frames, chk : uint1
     }
     numPMU : uint16;
     PMUs: PMUConfig3(frms)[self.numPMU];
-    dataRate : uint16;
+    dataRate : int16;
     : bytes &eod; # any remaining unparsed data
 
     on %done {
@@ -188,9 +251,9 @@ public type PMUConfig3 = unit(frms : Frames) {
     annmr : uint16;
     dgnmr : uint16;
     chname : NameField[self.phnmr+self.annmr+self.dgnmr];
-    phscale : bytes &size = (12*self.phnmr);
-    anscale : bytes &size = (8*self.annmr);
-    digunit : bytes &size = (4*self.dgnmr);
+    phscale : PhasorScale[self.phnmr];
+    anscale : AnalogScale[self.annmr];
+    digunit : DigitalStatusMaskWords[self.dgnmr];
     pmuLat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
     pmuLon : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
     pmuElev : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
@@ -198,8 +261,8 @@ public type PMUConfig3 = unit(frms : Frames) {
     : bytes &size = 1 {
         self.svcClass = $$.decode(hilti::Charset::ASCII);
     }
-    window : uint32;
-    groupDelay : uint32;
+    window : int32;
+    groupDelay : int32;
     fnom : uint16;
     cfgcnt : uint16;
 
