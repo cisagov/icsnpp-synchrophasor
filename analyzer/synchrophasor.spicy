@@ -364,7 +364,7 @@ type NotImplemented = unit(header : FrameHeader, frms : Frames, chk : uint16) {
 type SimpleName = unit() {
     var trimmedName : string = "";
     : bytes &size = 16 {
-        self.trimmedName = $$.decode(hilti::Charset::ASCII);
+        self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::ASCII);
     }
 } &convert=self.trimmedName;
 
@@ -373,7 +373,7 @@ type NameField = unit() {
     var trimmedName : string = "";
     nameLen : uint8;
     : bytes &size = self.nameLen {
-        self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::UTF8);
+        self.trimmedName = $$.decode(hilti::Charset::UTF8);
     }
 } &convert=self.trimmedName;
 
