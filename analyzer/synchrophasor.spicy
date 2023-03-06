@@ -175,6 +175,7 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
     var cfgNum : bool = False;
     var timeBase : uint32 = 1000000;
     var contIdx : uint16 = 0;
+    var allStationNames : vector<string>;
     var allPhasorNames : vector<string>;
     var allAnalogNames : vector<string>;
     var allDigitalNames : vector<string>;
@@ -209,6 +210,9 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
         frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
         if ((self?.pmuCfgs) && (|self.pmuCfgs| > 0)) {
             for (i in self.pmuCfgs) {
+                if (|i.stationName| > 0) {
+                    self.allStationNames.push_back(i.stationName);
+                }
                 for (j in i.phnam) {
                     if (|j| > 0) {
                         self.allPhasorNames.push_back(j);
@@ -228,6 +232,9 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
         }
         if ((self?.pmuCfg3s) && (|self.pmuCfg3s| > 0)) {
             for (i in self.pmuCfg3s) {
+                if (|i.stationName| > 0) {
+                    self.allStationNames.push_back(i.stationName);
+                }
                 for (j in i.phnam) {
                     if (|j| > 0) {
                         self.allPhasorNames.push_back(j);

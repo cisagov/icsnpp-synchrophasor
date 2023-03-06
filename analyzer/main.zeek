@@ -76,6 +76,7 @@ export {
         cont_idx : count &log &optional;
         pmu_count : count &log &optional;
         data_rate : count &log &optional;
+        station_names : vector of string &log &optional;
         phasor_names : vector of string &log &optional;
         analog_names : vector of string &log &optional;
         digital_names : vector of string &log &optional;
@@ -267,6 +268,7 @@ hook set_session_cfg(c: connection) {
             $cont_idx=0,
             $pmu_count=0,
             $data_rate=0,
+            $station_names=vector(),
             $phasor_names=vector(),
             $analog_names=vector(),
             $digital_names=vector());
@@ -423,6 +425,7 @@ event SYNCHROPHASOR::ConfigFrame(
     contIdx: count,
     numPMU: count,
     dataRate: count,
+    allStationNames: vector of string,
     allPhasorNames: vector of string,
     allAnalogNames: vector of string,
     allDigitalNames: vector of string) {
@@ -449,6 +452,7 @@ event SYNCHROPHASOR::ConfigFrame(
         info_cfg$cont_idx = contIdx;
         info_cfg$pmu_count = numPMU;
         info_cfg$data_rate = dataRate;
+        info_cfg$station_names = allStationNames;
         info_cfg$phasor_names = allPhasorNames;
         info_cfg$analog_names = allAnalogNames;
         info_cfg$digital_names = allDigitalNames;

@@ -39,6 +39,7 @@ on SYNCHROPHASOR::ConfigFrame -> event SYNCHROPHASOR::ConfigFrame(
     self.contIdx,
     self.numPMU,
     self.dataRate,
+    self.allStationNames,
     self.allPhasorNames,
     self.allAnalogNames,
     self.allDigitalNames);
