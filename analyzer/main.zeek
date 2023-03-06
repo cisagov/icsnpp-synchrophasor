@@ -246,9 +246,9 @@ hook set_session_cfg(c: connection) {
                                $uid=c$uid,
                                $id=c$id,
                                $proto="",
-                               cfg3=F,
-                               cont_idx=0,
-                               pmu_count=0);
+                               $cfg3=F,
+                               $cont_idx=0,
+                               $pmu_count=0);
 }
 
 # data frame
