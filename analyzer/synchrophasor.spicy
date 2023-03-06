@@ -7,7 +7,7 @@ module SYNCHROPHASOR;
 ##
 ## C37.118.2-2011 IEEE Standard for Synchrophasor Data Transfer for Power Systems
 ##   - https://github.com/cisagov/ICSNPP/files/10747425/ieee-standard-for-synchrophasor-data-transfer-for-power-systems_trimmed.pdf
-##   - https://github.com/cisagov/ICSNPP/issues/4
+##   - https://github.com/cisagov/icsnpp-synchrophasor/issues/1
 ##
 ## Seth Grover, Idaho National Lab, March 2023
 ##
