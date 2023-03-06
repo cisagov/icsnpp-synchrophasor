@@ -14,9 +14,6 @@ module SYNCHROPHASOR;
 
 import spicy;
 
-# Frames.configFrameIdx holds the index of the last configuration
-const CONFIG_FRAME_IDX_UNSET : uint64 = 0xffffffffffffffff;
-
 # C37.118.2-2011, 6.2 Message framework, Table 2, SYNC field definition ################################################
 public type FrameTypeCode = enum {
     DATA_FRAME              = 0,
