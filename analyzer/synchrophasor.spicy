@@ -214,7 +214,7 @@ public type PhasorScale = unit() {
 public type AnalogScale = unit() {
     magScale : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
     offset : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
-}
+};
 
 # C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
 public type Config3Frame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
@@ -314,10 +314,9 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
         if ((header.dataStreamId in frms.dataSourceIdPmuConfig3Map) &&
             (frms.dataSourceIdPmuConfig3Map[header.dataStreamId].initialized == True)) {
             self.pmuCfg3 = frms.dataSourceIdPmuConfig3Map[header.dataStreamId];
-            # TODO
-            # self.phnmr = self.pmuCfg.phnmr;
-            # self.annmr = self.pmuCfg.annmr;
-            # self.dgnmr = self.pmuCfg.dgnmr;
+            self.phnmr = self.pmuCfg3.phnmr;
+            self.annmr = self.pmuCfg3.annmr;
+            self.dgnmr = self.pmuCfg3.dgnmr;
         }
     }
 
