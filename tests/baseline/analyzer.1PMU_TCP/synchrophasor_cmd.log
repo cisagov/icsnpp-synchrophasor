@@ -9,6 +9,6 @@
 #fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	command	extframe
 #types	time	string	addr	port	addr	port	string	string	vector[count]
 #close XXXX-XX-XX-XX-XX-XX
-XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	36835	192.168.0.241	4712	tcp	(empty)	(empty)
-XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	36835	192.168.0.241	4712	tcp	(empty)	(empty)
-XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	36835	192.168.0.241	4712	tcp	(empty)	(empty)
+XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	36835	192.168.0.241	4712	tcp	Send CFG-2	(empty)
+XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	36835	192.168.0.241	4712	tcp	Data on	(empty)
+XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	36835	192.168.0.241	4712	tcp	Data off	(empty)

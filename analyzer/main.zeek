@@ -73,6 +73,7 @@ export {
         cfg3 : bool &log &optional;
         cont_idx : count &log &optional;
         pmu_count : count &log &optional;
+        data_rate : count &log &optional;
     };
 
     # synchrophasor_data.log columns
@@ -248,7 +249,8 @@ hook set_session_cfg(c: connection) {
                                $proto="",
                                $cfg3=F,
                                $cont_idx=0,
-                               $pmu_count=0);
+                               $pmu_count=0,
+                               $data_rate=0);
 }
 
 # data frame
@@ -411,6 +413,11 @@ event SYNCHROPHASOR::Config3Frame(c: connection,
                 info$frame_size_max = frameSize;
         }
 
+        info_cfg$cfg3 = T;
+        info_cfg$cont_idx = contIdx;
+        info_cfg$pmu_count = numPMU;
+        info_cfg$data_rate = dataRate;
+
         emit_synchrophasor_cfg_log(c);
     }
 }
@@ -442,6 +449,11 @@ event SYNCHROPHASOR::ConfigFrame(c: connection,
             if (frameSize > info$frame_size_max)
                 info$frame_size_max = frameSize;
         }
+
+        info_cfg$cfg3 = F;
+        info_cfg$cont_idx = 0;
+        info_cfg$pmu_count = numPMU;
+        info_cfg$data_rate = dataRate;
 
         emit_synchrophasor_cfg_log(c);
     }
