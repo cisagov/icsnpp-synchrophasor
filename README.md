@@ -6,7 +6,12 @@ Industrial Control Systems Network Protocol Parsers (ICSNPP) - Synchrophasor Dat
 
 ICSNPP-Synchrophasor is a Zeek plugin (written in [Spicy](https://docs.zeek.org/projects/spicy/en/latest/)) for parsing and logging fields used by the Synchrophasor protocol as presented in the IEEE standard C37.118, defining a transmission format for reporting synchronized phasor measurements in power systems.
 
-This parser produces one log file, `synchrophasor.log`, defined in [analyzer/main.zeek](analyzer/main.zeek).
+This parser produces the following files, defined in [analyzer/main.zeek](analyzer/main.zeek):
+    * `synchrophasor.log`
+    * `synchrophasor_cmd.log`
+    * `synchrophasor_hdr.log`
+    * `synchrophasor_cfg.log`
+    * `synchrophasor_data.log`
 
 For additional information on this log file, see the *Logging Capabilities* section below.
 
@@ -57,6 +62,81 @@ This log captures and summarizes, by connection, Synchrophasor frames transmitte
     - `2` - send CFG-2 frame
     - `3` - send CFG-3 frame
     - `e` - extended frame
+
+### Synchrophasor Command Frame Log (synchrophasor_cmd.log)
+
+#### Overview
+
+This log captures and summarizes synchrophasor Command frames.
+
+#### Fields Captured
+
+| Field             | Type           | Description                                               |
+| ----------------- |----------------|-----------------------------------------------------------|
+| ts                | time           | Timestamp                                                 |
+| uid               | string         | Unique ID for this connection                             |
+| id                | conn_id        | Default Zeek connection info (IP addresses, ports)        |
+| proto             | string         | Transport protocol                                        |
+| frame_type        | string         | Frame type from synchrophasor frame synchronization word  |
+| command           | string         | String represetnation of the command                      |
+| extframe          | vector<count>  | Extended frame data (user-defined)                        |
+
+### Synchrophasor Header Frame Log (synchrophasor_hdr.log)
+
+#### Overview
+
+This log captures and summarizes synchrophasor Header frames.
+
+#### Fields Captured
+
+| Field             | Type           | Description                                               |
+| ----------------- |----------------|-----------------------------------------------------------|
+| ts                | time           | Timestamp                                                 |
+| uid               | string         | Unique ID for this connection                             |
+| id                | conn_id        | Default Zeek connection info (IP addresses, ports)        |
+| proto             | string         | Transport protocol                                        |
+| frame_type        | string         | Frame type from synchrophasor frame synchronization word  |
+| command           | string         | String represetnation of the command                      |
+| data              | string         | Human-readable header data (user-defined)                 |
+
+### Synchrophasor Configuration Frame Log (synchrophasor_cfg.log)
+
+#### Overview
+
+This log captures and summarizes synchrophasor Configuration (CFG-1, CFG-2, and CFG-3) frames.
+
+#### Fields Captured
+
+| Field             | Type           | Description                                               |
+| ----------------- |----------------|-----------------------------------------------------------|
+| ts                | time           | Timestamp                                                 |
+| uid               | string         | Unique ID for this connection                             |
+| id                | conn_id        | Default Zeek connection info (IP addresses, ports)        |
+| proto             | string         | Transport protocol                                        |
+| frame_type        | string         | Frame type from synchrophasor frame synchronization word  |
+| cont_idx          | count          | Continuation index for fragmented frames                  |
+| pmu_count         | count          | The number of PMUs included in the configuration frame    |
+| data_rate         | count          | Rate of data transmission                                 |
+| station_names     | vector<string> | Station name(s) included in PMU configuration(s)          |
+| phasor_names      | vector<string> | Phasor name(s) included in PMU configuration(s)           |
+| analog_names      | vector<string> | Analog name(s) included in PMU configuration(s)           |
+| digital_names     | vector<string> | Digital name(s) included in PMU configuration(s)          |
+
+### Synchrophasor Data Frame Log (synchrophasor_data.log)
+
+#### Overview
+
+This log captures and summarizes synchrophasor Data frames.
+
+#### Fields Captured
+
+| Field             | Type           | Description                                               |
+| ----------------- |----------------|-----------------------------------------------------------|
+| ts                | time           | Timestamp                                                 |
+| uid               | string         | Unique ID for this connection                             |
+| id                | conn_id        | Default Zeek connection info (IP addresses, ports)        |
+| proto             | string         | Transport protocol                                        |
+| frame_type        | string         | Frame type from synchrophasor frame synchronization word  |
 
 ## ICSNPP Packages
 
