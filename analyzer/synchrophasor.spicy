@@ -172,7 +172,7 @@ public type NominalLineFreq = unit() {
 
 # C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
 # C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
-public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
+public type ConfigFrame = unit(header : FrameHeader, inout frms : Frames, chk : uint16) {
     var initialized : bool = False;
     var cfgNum : bool = False;
     var timeBase : uint32 = 1000000;
@@ -233,7 +233,7 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
 
 # CFG-1 and CFG-2: Table 8  - fields 8-19
 # CFG-3:           Table 10 - fields 9-27
-public type PMUConfig = unit(header : FrameHeader, frms : Frames) {
+public type PMUConfig = unit(header : FrameHeader, inout frms : Frames) {
     var frameType: FrameTypeCode = FrameTypeCode::Undef;     # stored from header.sync.frameType
     var initialized : bool = False;                          # set to True on %done
     var svcClass : string = "";                              # only for CFG-3
