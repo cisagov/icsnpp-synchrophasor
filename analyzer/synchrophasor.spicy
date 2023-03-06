@@ -379,6 +379,7 @@ type SimpleName = unit() {
         # TODO: spicy bug here (error ...: bound object has expired)
         # self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::ASCII);
         #
+        # https://github.com/zeek/spicy/issues/1390
         # repro per @bbanier:
         #      global input = b"   123   ";
         #      public type X = unit {
