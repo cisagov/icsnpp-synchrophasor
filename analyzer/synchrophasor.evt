@@ -43,6 +43,9 @@ on SYNCHROPHASOR::ConfigFrame -> event SYNCHROPHASOR::ConfigFrame(
     self.allPhasorNames,
     self.allAnalogNames,
     self.allDigitalNames);
+# TODO: as described in C37.118.2-2011, 6.4, and parsed with ConfigFrame, PMUConfig and PMUConfig3 unit
+#   types, configuration frames can be pretty complicated. Rather than include every possible field
+#   into this event, for now I'm going to observe how this parser does in the field and expand as needed.
 
 on SYNCHROPHASOR::DataFrame -> event SYNCHROPHASOR::DataFrame(
     $conn,
@@ -57,6 +60,10 @@ on SYNCHROPHASOR::DataFrame -> event SYNCHROPHASOR::DataFrame(
     self.phnmr,
     self.annmr,
     self.dgnmr);
+# TODO: as described in C37.118.2-2011, 6.3, and parsed with DataFrame and PMUData
+#   types in synchrophasor.spicy, data frames can be pretty complicated and very verbose.
+#   Rather than include every possible field in this event, for now I'm going to observe how this parser
+#   does in the field and expand as needed.
 
 on SYNCHROPHASOR::HeaderFrame -> event SYNCHROPHASOR::HeaderFrame(
     $conn,

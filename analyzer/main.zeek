@@ -66,6 +66,11 @@ export {
 
     # synchrophasor_cfg.log columns
     # config frame logs (one per CFG frame: CFG-1, CFG-2 and CFG-3 frame types)
+    #
+    # TODO: as described in C37.118.2-2011, 6.4, and parsed with ConfigFrame, PMUConfig and PMUConfig3 unit
+    #   types in synchrophasor.spicy, configuration frames can be pretty complicated.
+    #   Rather than include every possible field in this log, for now I'm going to observe how this parser
+    #   does in the field and expand as needed.
     type Synchrophasor_Config: record {
         ts: time &log;
         uid: string &log;
@@ -84,6 +89,11 @@ export {
 
     # synchrophasor_data.log columns
     # data frame logs (one per data frame)
+    #
+    # TODO: as described in C37.118.2-2011, 6.3, and parsed with DataFrame and PMUData
+    #   types in synchrophasor.spicy, data frames can be pretty complicated and very verbose.
+    #   Rather than include every possible field in this log, for now I'm going to observe how this parser
+    #   does in the field and expand as needed.
     type Synchrophasor_Data: record {
         ts: time &log;
         uid: string &log;

@@ -106,6 +106,8 @@ This log captures and summarizes synchrophasor Header frames.
 
 This log captures and summarizes synchrophasor Configuration (CFG-1, CFG-2, and CFG-3) frames.
 
+As described in C37.118.2-2011, section 6.4, and parsed with the `ConfigFrame`, `PMUConfig` and `PMUConfig3` unit types in [analyzer/synchrophasor.spicy](analyzer/synchrophasor.spicy), configuration frames can be are quite detailed. For the present, the maintainers of this package are going to observe how this parser does in the field and adjust as needed, rather than include every possible configuration value in this log. If you have suggestions please let us know by filing a GitHub issue.
+
 #### Fields Captured
 
 | Field             | Type           | Description                                               |
@@ -128,6 +130,8 @@ This log captures and summarizes synchrophasor Configuration (CFG-1, CFG-2, and 
 #### Overview
 
 This log captures and summarizes synchrophasor Data frames.
+
+As described in C37.118.2-2011, section 6.3, and parsed with the `DataFrame` and `PMUData` unit types in [analyzer/synchrophasor.spicy](analyzer/synchrophasor.spicy), data frames can be are quite detailed and very verbose. For the present, the maintainers of this package are going to observe how this parser does in the field and adjust as needed, rather than include every possible data value in this log. If you have suggestions please let us know by filing a GitHub issue.
 
 #### Fields Captured
 
