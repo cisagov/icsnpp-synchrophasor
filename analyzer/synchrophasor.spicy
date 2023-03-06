@@ -57,7 +57,8 @@ public type FracSec = unit(header : FrameHeader, frms : Frames) {
 
     # perform calculation of fractional seconds based on configuration's TIME_BASE (C37.118.2-2011, 6.2.2)
     on %done {
-        if (header.dataStreamId in frms.streamSourceIdConfigFrameMap) {
+        if ((header.dataStreamId in frms.streamSourceIdConfigFrameMap) &&
+            (frms.streamSourceIdConfigFrameMap[header.dataStreamId].initialized == True)) {
             self.fracSec = cast<real>(self.data.fracSecRaw) / cast<real>(frms.streamSourceIdConfigFrameMap[header.dataStreamId].timeBase);
         }
     }
@@ -339,31 +340,10 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
     var annmr : uint16 = 0;
     var dgnmr : uint16 = 0;
 
-    on %init {
-        if ((header.dataStreamId in frms.streamSourceIdConfigFrameMap) &&
-            (frms.streamSourceIdConfigFrameMap[header.dataStreamId].initialized == True)) {
-            self.cfgFrame = frms.streamSourceIdConfigFrameMap[header.dataStreamId];
-            self.numPMU = self.cfgFrame.numPMU;
-            self.cfgFound = True;
-        }
-        if ((header.dataStreamId in frms.dataSourceIdPmuConfigMap) &&
-            (frms.dataSourceIdPmuConfigMap[header.dataStreamId].initialized == True)) {
-            self.pmuCfg = frms.dataSourceIdPmuConfigMap[header.dataStreamId];
-            self.phnmr = self.pmuCfg.phnmr;
-            self.annmr = self.pmuCfg.annmr;
-            self.dgnmr = self.pmuCfg.dgnmr;
-            self.pmuFound = True;
-        }
-    }
-
-    data: PMUData(header, frms, self.cfgFrame, self.pmuCfg)[self.numPMU] if ((self.cfgFound == True) &&
-                                                                             (self.pmuFound == True) &&
-                                                                             (self.numPMU > 0));
-
-    : bytes &eod; # any remaining unparsed data
+    data: PMUData(header, frms, self)[] &eod;
 };
 
-public type PMUData = unit(header : FrameHeader, frms : Frames, cfgFrame : ConfigFrame, pmuCfg : PMUConfig) {
+public type PMUData = unit(header : FrameHeader, frms : Frames, inout dataFrm : DataFrame) {
     stat : bitfield(16) {
         triggerReason : 0..3;
         unlockedTime : 4..5;
@@ -374,13 +354,33 @@ public type PMUData = unit(header : FrameHeader, frms : Frames, cfgFrame : Confi
         dataSortingType : 12;
         pmuSyncError : 13;
         dataErrorIndicator : 14..15;
-    };
+    } {
+        if ((dataFrm.cfgFound == False) &&
+            (header.dataStreamId in frms.streamSourceIdConfigFrameMap) &&
+            (frms.streamSourceIdConfigFrameMap[header.dataStreamId].initialized == True)) {
+            dataFrm.cfgFrame = frms.streamSourceIdConfigFrameMap[header.dataStreamId];
+            dataFrm.numPMU = dataFrm.cfgFrame.numPMU;
+            dataFrm.cfgFound = True;
+        }
+        if ((dataFrm.pmuFound == False) &&
+            (header.dataStreamId in frms.dataSourceIdPmuConfigMap) &&
+            (frms.dataSourceIdPmuConfigMap[header.dataStreamId].initialized == True)) {
+            dataFrm.pmuCfg = frms.dataSourceIdPmuConfigMap[header.dataStreamId];
+            dataFrm.phnmr = dataFrm.pmuCfg.phnmr;
+            dataFrm.annmr = dataFrm.pmuCfg.annmr;
+            dataFrm.dgnmr = dataFrm.pmuCfg.dgnmr;
+            dataFrm.pmuFound = True;
+        }
+    }
 
-    phasors : PhasorEstimate(pmuCfg)[pmuCfg.phnmr] if ((pmuCfg?.phnmr) && (pmuCfg.phnmr > 0));
-    freq : FrequencyDeviation(pmuCfg);
-    dfreq : ROCOF(pmuCfg);
-    analog : AnalogData(pmuCfg)[pmuCfg.annmr] if ((pmuCfg?.annmr) && (pmuCfg.annmr > 0));
-    digital : uint16[pmuCfg.dgnmr] if ((pmuCfg?.dgnmr) && (pmuCfg.dgnmr > 0));
+    phasors : PhasorEstimate(dataFrm.pmuCfg)[dataFrm.pmuCfg.phnmr] if ((dataFrm.pmuFound == True) &&
+                                                                       (dataFrm.pmuCfg.phnmr > 0));
+    freq    : FrequencyDeviation(dataFrm.pmuCfg)                   if (dataFrm.pmuFound == True);
+    dfreq   : ROCOF(dataFrm.pmuCfg)                                if (dataFrm.pmuFound == True);
+    analog  : AnalogData(dataFrm.pmuCfg)[dataFrm.pmuCfg.annmr]     if ((dataFrm.pmuFound == True) &&
+                                                                       (dataFrm.pmuCfg.annmr > 0));
+    digital : uint16[dataFrm.pmuCfg.dgnmr]                         if ((dataFrm.pmuFound == True) &&
+                                                                       (dataFrm.pmuCfg.dgnmr > 0));
 };
 
 # Data type indicated by the FORMAT field in configuration 1, 2, and 3 frames
