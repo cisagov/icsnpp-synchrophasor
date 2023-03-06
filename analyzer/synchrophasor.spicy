@@ -210,26 +210,38 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
         if (|self.pmuCfgs| > 0) {
             for (i in self.pmuCfgs) {
                 for (j in i.phnam) {
-                    self.allPhasorNames.push_back(j);
+                    if (|j| > 0) {
+                        self.allPhasorNames.push_back(j);
+                    }
                 }
                 for (k in i.annam) {
-                    self.allAnalogNames.push_back(k);
+                    if (|k| > 0) {
+                        self.allAnalogNames.push_back(k);
+                    }
                 }
                 for (l in i.dgnam) {
-                    self.allDigitalNames.push_back(l);
+                    if (|l| > 0) {
+                        self.allDigitalNames.push_back(l);
+                    }
                 }
             }
         }
         if (|self.pmuCfg3s| > 0) {
             for (i in self.pmuCfg3s) {
                 for (j in i.phnam) {
-                    self.allPhasorNames.push_back(j);
+                    if (|j| > 0) {
+                        self.allPhasorNames.push_back(j);
+                    }
                 }
                 for (k in i.annam) {
-                    self.allAnalogNames.push_back(k);
+                    if (|k| > 0) {
+                        self.allAnalogNames.push_back(k);
+                    }
                 }
                 for (l in i.dgnam) {
-                    self.allDigitalNames.push_back(l);
+                    if (|l| > 0) {
+                        self.allDigitalNames.push_back(l);
+                    }
                 }
             }
         }
