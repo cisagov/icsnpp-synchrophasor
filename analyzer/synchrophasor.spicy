@@ -305,8 +305,8 @@ public type PMUConfig = unit(header : FrameHeader, frms : Frames) {
 # C37.118.2-2011, 6.3 Data frame, Table 5 ##############################################################################
 public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     var cfgFrame : ConfigFrame;
-    var numPMU : uint16 = 0;
     var pmuCfg : PMUConfig;
+    var numPMU : uint16 = 0;
     var phnmr : uint16 = 0;
     var annmr : uint16 = 0;
     var dgnmr : uint16 = 0;
@@ -336,7 +336,7 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
         }
     }
 
-    data: PMUData(self.cfgFrame, self.pmuCfg)[self.numPMU];
+    data: PMUData(self.cfgFrame, self.pmuCfg)[self.numPMU] if ((self?.cfgFrame) && (self?.pmuCfg) && (self.numPMU > 0));
     : bytes &eod; # any remaining unparsed data
 };
 
