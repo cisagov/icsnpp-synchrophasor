@@ -336,11 +336,11 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
         }
     }
 
-    data: PMUData(self.cfgFrame, self.pmuCfg)[self.numPMU] if ((self?.cfgFrame) && (self?.pmuCfg) && (self.numPMU > 0));
+    data: PMUData(header, frms, self.cfgFrame, self.pmuCfg)[self.numPMU] if ((self?.cfgFrame) && (self?.pmuCfg) && (self.numPMU > 0));
     : bytes &eod; # any remaining unparsed data
 };
 
-public type PMUData = unit(cfgFrame : ConfigFrame, pmuCfg : PMUConfig) {
+public type PMUData = unit(header : FrameHeader, frms : Frames, cfgFrame : ConfigFrame, pmuCfg : PMUConfig) {
   # TODO
 };
 
