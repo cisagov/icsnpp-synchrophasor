@@ -175,6 +175,9 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
     var cfgNum : bool = False;
     var timeBase : uint32 = 1000000;
     var contIdx : uint16 = 0;
+    var allPhasorNames : vector<string>;
+    var allAnalogNames : vector<string>;
+    var allDigitalNames : vector<string>;
 
     : uint16 if (header.sync.frameType == FrameTypeCode::CONFIG_3_FRAME) {
         self.contIdx = $$;
@@ -204,6 +207,32 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
     on %done {
         self.initialized = True;
         frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
+        if (|self.pmuCfgs| > 0) {
+            for (i in self.pmuCfgs) {
+                for (j in i.phnam) {
+                    self.allPhasorNames.push_back(j);
+                }
+                for (k in i.annam) {
+                    self.allAnalogNames.push_back(k);
+                }
+                for (l in i.dgnam) {
+                    self.allDigitalNames.push_back(l);
+                }
+            }
+        }
+        if (|self.pmuCfg3s| > 0) {
+            for (i in self.pmuCfg3s) {
+                for (j in i.phnam) {
+                    self.allPhasorNames.push_back(j);
+                }
+                for (k in i.annam) {
+                    self.allAnalogNames.push_back(k);
+                }
+                for (l in i.dgnam) {
+                    self.allDigitalNames.push_back(l);
+                }
+            }
+        }
     }
 };
 
@@ -240,7 +269,9 @@ public type PMUConfig3 = unit(frms : Frames) {
     phnmr : uint16;
     annmr : uint16;
     dgnmr : uint16;
-    chname : NameField[self.phnmr+self.annmr+self.dgnmr];
+    phnam : NameField[self.phnmr];
+    annam : NameField[self.annmr];
+    dgnam : NameField[self.dgnmr];
     phscale : PhasorScale[self.phnmr];
     anscale : AnalogScale[self.annmr];
     digunit : DigitalStatusMaskWords[self.dgnmr];

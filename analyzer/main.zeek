@@ -192,109 +192,109 @@ event analyzer_confirmation(c: connection, atype: Analyzer::Tag, aid: count) &pr
 hook set_session_cmd(c: connection) {
     if ( ! c?$synchrophasor )
         c$synchrophasor = Synchrophasor_Info(
-                               $ts=network_time(),
-                               $uid=c$uid,
-                               $id=c$id,
-                               $proto="",
-                               $version=set(),
-                               $history="",
-                               $data_stream_id=set(),
-                               $data_rate=set(),
-                               $frame_size_min=0,
-                               $frame_size_max=0,
-                               $data_frame_count=0);
+            $ts=network_time(),
+            $uid=c$uid,
+            $id=c$id,
+            $proto="",
+            $version=set(),
+            $history="",
+            $data_stream_id=set(),
+            $data_rate=set(),
+            $frame_size_min=0,
+            $frame_size_max=0,
+            $data_frame_count=0);
 
     if ( ! c?$synchrophasor_cmd )
         c$synchrophasor_cmd = Synchrophasor_Command(
-                               $ts=network_time(),
-                               $uid=c$uid,
-                               $id=c$id,
-                               $proto="",
-                               $frame_type="",
-                               $command="",
-                               $extframe=vector());
+            $ts=network_time(),
+            $uid=c$uid,
+            $id=c$id,
+            $proto="",
+            $frame_type="",
+            $command="",
+            $extframe=vector());
 }
 
 # header frame
 hook set_session_hdr(c: connection) {
     if ( ! c?$synchrophasor )
         c$synchrophasor = Synchrophasor_Info(
-                               $ts=network_time(),
-                               $uid=c$uid,
-                               $id=c$id,
-                               $proto="",
-                               $version=set(),
-                               $history="",
-                               $data_stream_id=set(),
-                               $data_rate=set(),
-                               $frame_size_min=0,
-                               $frame_size_max=0,
-                               $data_frame_count=0);
+            $ts=network_time(),
+            $uid=c$uid,
+            $id=c$id,
+            $proto="",
+            $version=set(),
+            $history="",
+            $data_stream_id=set(),
+            $data_rate=set(),
+            $frame_size_min=0,
+            $frame_size_max=0,
+            $data_frame_count=0);
 
     if ( ! c?$synchrophasor_hdr )
         c$synchrophasor_hdr = Synchrophasor_Header(
-                               $ts=network_time(),
-                               $uid=c$uid,
-                               $id=c$id,
-                               $proto="",
-                               $frame_type="",
-                               $data="");
+            $ts=network_time(),
+            $uid=c$uid,
+            $id=c$id,
+            $proto="",
+            $frame_type="",
+            $data="");
 }
 
 # cfg frame
 hook set_session_cfg(c: connection) {
     if ( ! c?$synchrophasor )
         c$synchrophasor = Synchrophasor_Info(
-                               $ts=network_time(),
-                               $uid=c$uid,
-                               $id=c$id,
-                               $proto="",
-                               $version=set(),
-                               $history="",
-                               $data_stream_id=set(),
-                               $data_rate=set(),
-                               $frame_size_min=0,
-                               $frame_size_max=0,
-                               $data_frame_count=0);
+            $ts=network_time(),
+            $uid=c$uid,
+            $id=c$id,
+            $proto="",
+            $version=set(),
+            $history="",
+            $data_stream_id=set(),
+            $data_rate=set(),
+            $frame_size_min=0,
+            $frame_size_max=0,
+            $data_frame_count=0);
 
     if ( ! c?$synchrophasor_cfg )
         c$synchrophasor_cfg = Synchrophasor_Config(
-                               $ts=network_time(),
-                               $uid=c$uid,
-                               $id=c$id,
-                               $proto="",
-                               $frame_type="",
-                               $cont_idx=0,
-                               $pmu_count=0,
-                               $data_rate=0,
-                               $phasor_names=vector(),
-                               $analog_names=vector(),
-                               $digital_names=vector());
+            $ts=network_time(),
+            $uid=c$uid,
+            $id=c$id,
+            $proto="",
+            $frame_type="",
+            $cont_idx=0,
+            $pmu_count=0,
+            $data_rate=0,
+            $phasor_names=vector(),
+            $analog_names=vector(),
+            $digital_names=vector());
 }
 
 # data frame
 hook set_session_data(c: connection) {
     if ( ! c?$synchrophasor )
         c$synchrophasor = Synchrophasor_Info(
-                               $ts=network_time(),
-                               $uid=c$uid,
-                               $id=c$id,
-                               $proto="",
-                               $version=set(),
-                               $history="",
-                               $data_stream_id=set(),
-                               $data_rate=set(),
-                               $frame_size_min=0,
-                               $frame_size_max=0,
-                               $data_frame_count=0);
+            $ts=network_time(),
+            $uid=c$uid,
+            $id=c$id,
+            $proto="",
+            $version=set(),
+            $history="",
+            $data_stream_id=set(),
+            $data_rate=set(),
+            $frame_size_min=0,
+            $frame_size_max=0,
+            $data_frame_count=0);
 
     if ( ! c?$synchrophasor_data )
         c$synchrophasor_data = Synchrophasor_Data(
-                               $ts=network_time(),
-                               $uid=c$uid,
-                               $id=c$id,
-                               $proto="",
-                               $frame_type="");
+            $ts=network_time(),
+            $uid=c$uid,
+            $id=c$id,
+            $proto="",
+            $frame_type="");
 }
 
 # emit_synchrophasor*log functions generate log entries for their
@@ -373,16 +373,18 @@ function emit_synchrophasor_log_all(c: connection) {
 ## Synchrophasor message frame events
 ##
 
-event SYNCHROPHASOR::CommandFrame(c: connection,
-                                  is_orig: bool,
-                                  frameType : SYNCHROPHASOR::FrameTypeCode,
-                                  timeStamp: time,
-                                  frameSize: count,
-                                  chk: count,
-                                  version: count,
-                                  dataStreamId: count,
-                                  cmd: count,
-                                  extframe: vector of count) {
+event SYNCHROPHASOR::CommandFrame(
+    c: connection,
+    is_orig: bool,
+    frameType : SYNCHROPHASOR::FrameTypeCode,
+    timeStamp: time,
+    frameSize: count,
+    chk: count,
+    version: count,
+    dataStreamId: count,
+    cmd: count,
+    extframe: vector of count) {
+
     hook set_session_cmd(c);
 
     local info = c$synchrophasor;
@@ -407,19 +409,24 @@ event SYNCHROPHASOR::CommandFrame(c: connection,
     emit_synchrophasor_cmd_log(c);
 }
 
-event SYNCHROPHASOR::ConfigFrame(c: connection,
-                                 is_orig: bool,
-                                 frameType : SYNCHROPHASOR::FrameTypeCode,
-                                 timeStamp: time,
-                                 frameSize: count,
-                                 chk: count,
-                                 version: count,
-                                 dataStreamId: count,
-                                 initialized: bool,
-                                 timeBase: count,
-                                 contIdx: count,
-                                 numPMU: count,
-                                 dataRate: count) {
+event SYNCHROPHASOR::ConfigFrame(
+    c: connection,
+    is_orig: bool,
+    frameType : SYNCHROPHASOR::FrameTypeCode,
+    timeStamp: time,
+    frameSize: count,
+    chk: count,
+    version: count,
+    dataStreamId: count,
+    initialized: bool,
+    timeBase: count,
+    contIdx: count,
+    numPMU: count,
+    dataRate: count,
+    allPhasorNames: vector of count,
+    allAnalogNames: vector of count,
+    allDigitalNames: vector of count) {
+
     if (initialized) {
         hook set_session_cfg(c);
 
@@ -442,23 +449,28 @@ event SYNCHROPHASOR::ConfigFrame(c: connection,
         info_cfg$cont_idx = contIdx;
         info_cfg$pmu_count = numPMU;
         info_cfg$data_rate = dataRate;
+        info_cfg$phasor_names = allPhasorNames;
+        info_cfg$analog_names = allAnalogNames;
+        info_cfg$digital_names = allDigitalNames;
 
         emit_synchrophasor_cfg_log(c);
     }
 }
 
-event SYNCHROPHASOR::DataFrame(c: connection,
-                               is_orig: bool,
-                               frameType : SYNCHROPHASOR::FrameTypeCode,
-                               timeStamp: time,
-                               frameSize: count,
-                               chk: count,
-                               version: count,
-                               dataStreamId: count,
-                               numPMU: count,
-                               phnmr: count,
-                               annmr: count,
-                               dgnmr: count) {
+event SYNCHROPHASOR::DataFrame(
+    c: connection,
+    is_orig: bool,
+    frameType : SYNCHROPHASOR::FrameTypeCode,
+    timeStamp: time,
+    frameSize: count,
+    chk: count,
+    version: count,
+    dataStreamId: count,
+    numPMU: count,
+    phnmr: count,
+    annmr: count,
+    dgnmr: count) {
+
     hook set_session_data(c);
 
     local info = c$synchrophasor;
@@ -481,15 +493,17 @@ event SYNCHROPHASOR::DataFrame(c: connection,
     emit_synchrophasor_data_log(c);
 }
 
-event SYNCHROPHASOR::HeaderFrame(c: connection,
-                                 is_orig: bool,
-                                 frameType : SYNCHROPHASOR::FrameTypeCode,
-                                 timeStamp: time,
-                                 frameSize: count,
-                                 chk: count,
-                                 version: count,
-                                 dataStreamId: count,
-                                 data: string) {
+event SYNCHROPHASOR::HeaderFrame(
+    c: connection,
+    is_orig: bool,
+    frameType : SYNCHROPHASOR::FrameTypeCode,
+    timeStamp: time,
+    frameSize: count,
+    chk: count,
+    version: count,
+    dataStreamId: count,
+    data: string) {
+
     hook set_session_hdr(c);
 
     local info = c$synchrophasor;
