@@ -62,8 +62,6 @@ public type FracSec = unit(header : FrameHeader, frms : Frames) {
     on %done {
         if (header.dataStreamId in frms.streamSourceIdConfigFrameMap) {
             self.fracSec = cast<real>(self.data.fracSecRaw) / cast<real>(frms.streamSourceIdConfigFrameMap[header.dataStreamId].timeBase);
-        } else if (header.dataStreamId in frms.streamSourceIdConfig3FrameMap) {
-            self.fracSec = cast<real>(self.data.fracSecRaw) / cast<real>(frms.streamSourceIdConfig3FrameMap[header.dataStreamId].timeBase);
         }
     }
 };
@@ -138,52 +136,6 @@ public type NominalLineFreq = unit() {
     };
 } &convert=self.code;
 
-# C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
-public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
-    var initialized : bool = False;
-    var timeBase : uint32 = 1000000;
-    : bitfield(32) {
-        subdivision : 0..23;
-        _ : 24..31;
-    } {
-        if ($$.subdivision > 0) {
-            self.timeBase = $$.subdivision;
-        }
-    }
-    numPMU : uint16;
-    PMUs: PMUConfig(frms)[self.numPMU];
-    dataRate : int16;
-    : bytes &eod; # any remaining unparsed data
-
-    on %done {
-        self.initialized = True;
-        frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
-    }
-};
-
-public type PMUConfig = unit(frms : Frames) {
-    var initialized : bool = False;
-    stationName : SimpleName;
-    dataSourceId : uint16;
-    format : ConfigFormat;
-    phnmr : uint16;
-    annmr : uint16;
-    dgnmr : uint16;
-    phnam : SimpleName[self.phnmr];
-    annam : SimpleName[self.annmr];
-    dgnam : SimpleName[16 * self.dgnmr];
-    phunit : PhasorConversionFactor[self.phnmr];
-    anunit : AnalogConversionFactor[self.annmr];
-    digunit : DigitalStatusMaskWords[self.dgnmr];
-    fnom : uint16;
-    cfgcnt : uint16;
-
-    on %done {
-        self.initialized = True;
-        frms.dataSourceIdPmuConfigMap[self.dataSourceId] = self;
-    }
-};
-
 # C37.118.2-2011, 6.4 Word definitions unique to configuration frame 3, Table 11 #######################################
 public type PhasorScale = unit() {
     flags : bitfield(16) {
@@ -216,11 +168,18 @@ public type AnalogScale = unit() {
     offset : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
 };
 
+# C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
 # C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
-public type Config3Frame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
+public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     var initialized : bool = False;
+    var cfgNum : bool = False;
     var timeBase : uint32 = 1000000;
-    contIdx : uint16;
+    var contIdx : uint16 = 0;
+
+    : uint16 if (header.sync.frameType == FrameTypeCode::CONFIG_3_FRAME) {
+        self.contIdx = $$;
+    }
+
     : bitfield(32) {
         subdivision : 0..23;
         _ : 24..31;
@@ -229,14 +188,45 @@ public type Config3Frame = unit(header : FrameHeader, frms : Frames, chk : uint1
             self.timeBase = $$.subdivision;
         }
     }
+
     numPMU : uint16;
-    PMUs: PMUConfig3(frms)[self.numPMU];
+
+    switch ( header.sync.frameType ) {
+        FrameTypeCode::CONFIG_1_FRAME,
+        FrameTypeCode::CONFIG_2_FRAME -> pmuCfgs : PMUConfig(frms)[self.numPMU];
+        FrameTypeCode::CONFIG_3_FRAME -> pmuCfg3s : PMUConfig3(frms)[self.numPMU];
+    };
+
     dataRate : int16;
+
     : bytes &eod; # any remaining unparsed data
 
     on %done {
         self.initialized = True;
-        frms.streamSourceIdConfig3FrameMap[header.dataStreamId] = self;
+        frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
+    }
+};
+
+public type PMUConfig = unit(frms : Frames) {
+    var initialized : bool = False;
+    stationName : SimpleName;
+    dataSourceId : uint16;
+    format : ConfigFormat;
+    phnmr : uint16;
+    annmr : uint16;
+    dgnmr : uint16;
+    phnam : SimpleName[self.phnmr];
+    annam : SimpleName[self.annmr];
+    dgnam : SimpleName[16 * self.dgnmr];
+    phunit : PhasorConversionFactor[self.phnmr];
+    anunit : AnalogConversionFactor[self.annmr];
+    digunit : DigitalStatusMaskWords[self.dgnmr];
+    fnom : uint16;
+    cfgcnt : uint16;
+
+    on %done {
+        self.initialized = True;
+        frms.dataSourceIdPmuConfigMap[self.dataSourceId] = self;
     }
 };
 
@@ -275,7 +265,6 @@ public type PMUConfig3 = unit(frms : Frames) {
 # C37.118.2-2011, 6.3 Data frame, Table 5 ##############################################################################
 public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     var cfgFrame : ConfigFrame;
-    var cfg3Frame : Config3Frame;
     var numPMU : uint16 = 0;
     var pmuCfg : PMUConfig;
     var pmuCfg3 : PMUConfig3;
@@ -299,11 +288,6 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
             self.cfgFrame = frms.streamSourceIdConfigFrameMap[header.dataStreamId];
             self.numPMU = self.cfgFrame.numPMU;
         }
-        if ((header.dataStreamId in frms.streamSourceIdConfig3FrameMap) &&
-            (frms.streamSourceIdConfig3FrameMap[header.dataStreamId].initialized == True)) {
-            self.cfg3Frame = frms.streamSourceIdConfig3FrameMap[header.dataStreamId];
-            self.numPMU = self.cfg3Frame.numPMU;
-        }
         if ((header.dataStreamId in frms.dataSourceIdPmuConfigMap) &&
             (frms.dataSourceIdPmuConfigMap[header.dataStreamId].initialized == True)) {
             self.pmuCfg = frms.dataSourceIdPmuConfigMap[header.dataStreamId];
@@ -320,11 +304,11 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
         }
     }
 
-    data: PMUData(self.cfgFrame, self.pmuCfg, self.cfg3Frame, self.pmuCfg3)[self.numPMU];
+    data: PMUData(self.cfgFrame, self.pmuCfg, self.pmuCfg3)[self.numPMU];
     : bytes &eod; # any remaining unparsed data
 };
 
-public type PMUData = unit(cfgFrame : ConfigFrame, pmuCfg : PMUConfig, cfg3Frame : Config3Frame, pmuCfg3 : PMUConfig3) {
+public type PMUData = unit(cfgFrame : ConfigFrame, pmuCfg : PMUConfig, pmuCfg3 : PMUConfig3) {
   # TODO
 };
 
@@ -363,8 +347,8 @@ public type Frame = unit(inout frms : Frames) {
         FrameTypeCode::HEADER_FRAME   -> HEADER_FRAME     : HeaderFrame(self.header, frms, self.chk);
         FrameTypeCode::COMMAND_FRAME  -> COMMAND_FRAME    : CommandFrame(self.header, frms, self.chk);
         FrameTypeCode::CONFIG_1_FRAME,
-        FrameTypeCode::CONFIG_2_FRAME -> CONFIG_FRAME     : ConfigFrame(self.header, frms, self.chk);
-        FrameTypeCode::CONFIG_3_FRAME -> CONFIG_3_FRAME   : Config3Frame(self.header, frms, self.chk);
+        FrameTypeCode::CONFIG_2_FRAME,
+        FrameTypeCode::CONFIG_3_FRAME -> CONFIG_FRAME     : ConfigFrame(self.header, frms, self.chk);
         *                             ->                  : NotImplemented(self.header, frms, self.chk);
     } &parse-from=self._payload if (self.header.sync.frameType);
 
@@ -377,6 +361,5 @@ public type Frames = unit() {
     var dataSourceIdPmuConfigMap : map<uint16, PMUConfig>;
     var dataSourceIdPmuConfig3Map : map<uint16, PMUConfig3>;
     var streamSourceIdConfigFrameMap : map<uint16, ConfigFrame>;
-    var streamSourceIdConfig3FrameMap : map<uint16, Config3Frame>;
     frms : Frame(self)[];
 };

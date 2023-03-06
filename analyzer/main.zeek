@@ -47,6 +47,7 @@ export {
         id: conn_id &log;
 
         proto : string &log &optional;
+        frame_type : string &log &optional;
         command : string &log &optional;
         extframe : vector of count &log &optional;
     };
@@ -59,6 +60,7 @@ export {
         id: conn_id &log;
 
         proto : string &log &optional;
+        frame_type : string &log &optional;
         data : string &log &optional;
     };
 
@@ -70,10 +72,12 @@ export {
         id: conn_id &log;
 
         proto : string &log &optional;
-        cfg3 : bool &log &optional;
+        frame_type : string &log &optional;
         cont_idx : count &log &optional;
-        pmu_count : count &log &optional;
         data_rate : count &log &optional;
+        phasor_names : vector of string &log &optional;
+        analog_names : vector of string &log &optional;
+        digital_names : vector of string &log &optional;
     };
 
     # synchrophasor_data.log columns
@@ -84,6 +88,7 @@ export {
         id: conn_id &log;
 
         proto : string &log &optional;
+        frame_type : string &log &optional;
     };
 
     # global events for logging
@@ -114,6 +119,14 @@ export {
       [8] = "Extended frame", # extended frame
     } &default = "unknown"; # unknown
 
+    const FRAME_TYPES = {
+      [SYNCHROPHASOR::FrameTypeCode_DATA_FRAME] = "Data",
+      [SYNCHROPHASOR::FrameTypeCode_HEADER_FRAME] = "Header",
+      [SYNCHROPHASOR::FrameTypeCode_CONFIG_1_FRAME] = "CFG1",
+      [SYNCHROPHASOR::FrameTypeCode_CONFIG_2_FRAME] = "CFG2",
+      [SYNCHROPHASOR::FrameTypeCode_COMMAND_FRAME] = "Command",
+      [SYNCHROPHASOR::FrameTypeCode_CONFIG_3_FRAME] = "CFG3"
+    } &default = "unknown";
 }
 
 # redefine connection record to contain one of each of the synchrophasor records
@@ -196,6 +209,7 @@ hook set_session_cmd(c: connection) {
                                $uid=c$uid,
                                $id=c$id,
                                $proto="",
+                               $frame_type="",
                                $command="",
                                $extframe=vector());
 }
@@ -222,6 +236,7 @@ hook set_session_hdr(c: connection) {
                                $uid=c$uid,
                                $id=c$id,
                                $proto="",
+                               $frame_type="",
                                $data="");
 }
 
@@ -247,10 +262,13 @@ hook set_session_cfg(c: connection) {
                                $uid=c$uid,
                                $id=c$id,
                                $proto="",
-                               $cfg3=F,
+                               $frame_type="",
                                $cont_idx=0,
                                $pmu_count=0,
-                               $data_rate=0);
+                               $data_rate=0,
+                               $phasor_names=vector(),
+                               $analog_names=vector(),
+                               $digital_names=vector());
 }
 
 # data frame
@@ -274,7 +292,8 @@ hook set_session_data(c: connection) {
                                $ts=network_time(),
                                $uid=c$uid,
                                $id=c$id,
-                               $proto="");
+                               $proto="",
+                               $frame_type="");
 }
 
 # emit_synchrophasor*log functions generate log entries for their
@@ -355,6 +374,7 @@ function emit_synchrophasor_log_all(c: connection) {
 
 event SYNCHROPHASOR::CommandFrame(c: connection,
                                   is_orig: bool,
+                                  frameType : SYNCHROPHASOR::FrameTypeCode,
                                   timeStamp: time,
                                   frameSize: count,
                                   chk: count,
@@ -366,6 +386,8 @@ event SYNCHROPHASOR::CommandFrame(c: connection,
 
     local info = c$synchrophasor;
     local info_cmd = c$synchrophasor_cmd;
+
+    info_cmd$frame_type = FRAME_TYPES[frameType];
 
     add info$version[version];
     add info$data_stream_id[dataStreamId];
@@ -384,46 +406,9 @@ event SYNCHROPHASOR::CommandFrame(c: connection,
     emit_synchrophasor_cmd_log(c);
 }
 
-event SYNCHROPHASOR::Config3Frame(c: connection,
-                                  is_orig: bool,
-                                  timeStamp: time,
-                                  frameSize: count,
-                                  chk: count,
-                                  version: count,
-                                  dataStreamId: count,
-                                  initialized: bool,
-                                  timeBase: count,
-                                  contIdx: count,
-                                  numPMU: count,
-                                  dataRate: count) {
-    if (initialized) {
-        hook set_session_cfg(c);
-
-        local info = c$synchrophasor;
-        local info_cfg = c$synchrophasor_cfg;
-
-        add info$version[version];
-        add info$data_stream_id[dataStreamId];
-        add info$data_rate[dataRate];
-
-        if (frameSize > 0) {
-            if ((frameSize < info$frame_size_min) || (info$frame_size_min == 0))
-                info$frame_size_min = frameSize;
-            if (frameSize > info$frame_size_max)
-                info$frame_size_max = frameSize;
-        }
-
-        info_cfg$cfg3 = T;
-        info_cfg$cont_idx = contIdx;
-        info_cfg$pmu_count = numPMU;
-        info_cfg$data_rate = dataRate;
-
-        emit_synchrophasor_cfg_log(c);
-    }
-}
-
 event SYNCHROPHASOR::ConfigFrame(c: connection,
                                  is_orig: bool,
+                                 frameType : SYNCHROPHASOR::FrameTypeCode,
                                  timeStamp: time,
                                  frameSize: count,
                                  chk: count,
@@ -431,6 +416,7 @@ event SYNCHROPHASOR::ConfigFrame(c: connection,
                                  dataStreamId: count,
                                  initialized: bool,
                                  timeBase: count,
+                                 contIdx: count,
                                  numPMU: count,
                                  dataRate: count) {
     if (initialized) {
@@ -439,6 +425,8 @@ event SYNCHROPHASOR::ConfigFrame(c: connection,
         local info = c$synchrophasor;
         local info_cfg = c$synchrophasor_cfg;
 
+        info_cfg$frame_type = FRAME_TYPES[frameType];
+
         add info$version[version];
         add info$data_stream_id[dataStreamId];
         add info$data_rate[dataRate];
@@ -450,8 +438,7 @@ event SYNCHROPHASOR::ConfigFrame(c: connection,
                 info$frame_size_max = frameSize;
         }
 
-        info_cfg$cfg3 = F;
-        info_cfg$cont_idx = 0;
+        info_cfg$cont_idx = contIdx;
         info_cfg$pmu_count = numPMU;
         info_cfg$data_rate = dataRate;
 
@@ -461,6 +448,7 @@ event SYNCHROPHASOR::ConfigFrame(c: connection,
 
 event SYNCHROPHASOR::DataFrame(c: connection,
                                is_orig: bool,
+                               frameType : SYNCHROPHASOR::FrameTypeCode,
                                timeStamp: time,
                                frameSize: count,
                                chk: count,
@@ -474,6 +462,8 @@ event SYNCHROPHASOR::DataFrame(c: connection,
 
     local info = c$synchrophasor;
     local info_data = c$synchrophasor_data;
+
+    info_data$frame_type = FRAME_TYPES[frameType];
 
     add info$version[version];
     add info$data_stream_id[dataStreamId];
@@ -492,6 +482,7 @@ event SYNCHROPHASOR::DataFrame(c: connection,
 
 event SYNCHROPHASOR::HeaderFrame(c: connection,
                                  is_orig: bool,
+                                 frameType : SYNCHROPHASOR::FrameTypeCode,
                                  timeStamp: time,
                                  frameSize: count,
                                  chk: count,
@@ -502,6 +493,8 @@ event SYNCHROPHASOR::HeaderFrame(c: connection,
 
     local info = c$synchrophasor;
     local info_hdr = c$synchrophasor_hdr;
+
+    info_hdr$frame_type = FRAME_TYPES[frameType];
 
     add info$version[version];
     add info$data_stream_id[dataStreamId];
