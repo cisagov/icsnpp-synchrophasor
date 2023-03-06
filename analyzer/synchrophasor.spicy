@@ -100,11 +100,11 @@ public type HeaderFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
 
 public type ConfigFormat = unit() {
     format : bitfield(16) {
-        phasorShape : 0;
-        phasorFormat : 1;
-        analogFormat : 2;
-        freqFormat : 3;
-        _ : 4..15;
+        phasorShape : 0;  # 0 = phasor real and imaginary (rectangular), 1 = magnitude and angle (polar)
+        phasorFormat : 1; # 0 = phasors 16-bit integer, 1 = floating point
+        analogFormat : 2; # 0 = analogs 16-bit integer, 1 = floating point
+        freqFormat : 3;   # 0 = FREQ/DFREQ 16-bit integer, 1 = floating point
+        _ : 4..15;        # unused
     };
 } &convert=self.format;
 
@@ -302,7 +302,36 @@ public type PMUConfig = unit(header : FrameHeader, frms : Frames) {
     }
 };
 
-# C37.118.2-2011, 6.3 Data frame, Table 5 ##############################################################################
+# 16-bytes interpreted as an ASCII-encoded string (for CFG-1 and CFG-2) #################################################
+#  - OR -
+# C37.118.2-2011, 6.4 Name field description, table 12 (for CFG-3) ######################################################
+type NameField = unit(frameType : FrameTypeCode) {
+    var trimmedName : string = "";
+
+    : bytes &size = 16 if (frameType != FrameTypeCode::CONFIG_3_FRAME) {
+        self.trimmedName = $$.decode(hilti::Charset::ASCII);
+        # TODO: spicy bug here (error ...: bound object has expired)
+        # self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::ASCII);
+        #
+        # https://github.com/zeek/spicy/issues/1390
+        # repro per @bbanier:
+        #      global input = b"   123   ";
+        #      public type X = unit {
+        #          var s: string;
+        #          x: bytes &eod &parse-from=input {
+        #              self.s = $$.strip(spicy::Side::Both).decode(spicy::Charset::ASCII);
+        #          }
+        #      };
+    }
+
+    nameLen : uint8 if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    : bytes &size = self.nameLen if (frameType == FrameTypeCode::CONFIG_3_FRAME) {
+        self.trimmedName = $$.decode(hilti::Charset::UTF8);
+    }
+
+} &convert=self.trimmedName;
+
+# C37.118.2-2011, 6.3 Data frame, Table 5 and Table 6 ##################################################################
 public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     var cfgFrame : ConfigFrame;
     var pmuCfg : PMUConfig;
@@ -344,42 +373,81 @@ public type PMUData = unit(header : FrameHeader, frms : Frames, cfgFrame : Confi
         dataErrorIndicator : 14..15;
     };
 
+    phasors : PhasorEstimate(pmuCfg)[pmuCfg.phnmr];
+    freq : FrequencyDeviation(pmuCfg);
+    dfreq : ROCOF(pmuCfg);
+    analog : AnalogData(pmuCfg)[pmuCfg.annmr];
+    digital : uint16[pmuCfg.dgnmr];
 };
 
+# Data type indicated by the FORMAT field in configuration 1, 2, and 3 frames
+# 16-bit integer values:
+# Rectangular format:
+# -real and imaginary, real value first
+# -16-bit signed integers, range –32 767 to +32 767
+# Polar format:
+# -magnitude and angle, magnitude first
+# -magnitude 16-bit unsigned integer range 0 to 65535
+# -angle 16-bit signed integer, in radians × 10 4 , range –31 416 to +31 416
+#
+# 32-bit values in IEEE floating-point format:
+# Rectangular format:
+# -real and imaginary, in engineering units, real value first
+# Polar format:
+# -magnitude and angle, magnitude first and in engineering units
+# -angle in radians, range –π to + π
+public type PhasorEstimate = unit(pmuCfg : PMUConfig) {
+    rectangular : PhasorRectangular(pmuCfg) if (pmuCfg.format.phasorShape == 0);
+    polar       : PhasorRectangular(pmuCfg) if (pmuCfg.format.phasorShape == 1);
+};
+
+public type PhasorRectangular = unit(pmuCfg : PMUConfig) {
+    realValInt          : int16                                                                        if (pmuCfg.format.phasorFormat == 0);
+    realValFloat        : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
+    imaginaryValInt     : int16                                                                        if (pmuCfg.format.phasorFormat == 0);
+    imaginaryValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
+};
+
+public type PhasorPolar = unit(pmuCfg : PMUConfig) {
+    magnitudeValInt     : uint16                                                                       if (pmuCfg.format.phasorFormat == 0);
+    magnitudeValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
+    angleValInt         : int16                                                                        if (pmuCfg.format.phasorFormat == 0);
+    angleValFloat       : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
+};
+
+# Frequency deviation from nominal, in mHz
+# Range–nominal (50 Hz or 60 Hz) –32.767 to +32.767 Hz
+# 16-bit integer or 32-bit floating point
+# 16-bit integer: 16-bit signed integers, range –32 767 to +32 767
+# 32-bit floating point: actual frequency value in IEEE floating-point format.
+# Data type indicated by the FORMAT field in configuration 1, 2, and 3 frames
+public type FrequencyDeviation = unit(pmuCfg : PMUConfig) {
+    freqDevMhzInt   : int16                                                                        if (pmuCfg.format.freqFormat == 0);
+    freqDevMhzFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.freqFormat == 1);
+};
+
+# ROCOF, in hertz per second times 100
+# Range –327.67 to +327.67 Hz per second
+# Can be 16-bit integer or IEEE floating point, same as FREQ above. Data type indicated
+# by the FORMAT field in configuration 1, 2, and 3 frames
+public type ROCOF = unit(pmuCfg : PMUConfig) {
+    rocofInt   : int16                                                                        if (pmuCfg.format.freqFormat == 0);
+    rocofFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.freqFormat == 1);
+};
+
+# Analog word. 16-bit integer. It could be sampled data such as control signal or
+# transducer value. Values and ranges defined by user.
+# Can be 16-bit integer or IEEE floating point. Data type indicated by the FORMAT field
+# in configuration 1, 2, and 3 frames
+public type AnalogData = unit(pmuCfg : PMUConfig) {
+    analogDataInt   : int16                                                                        if (pmuCfg.format.analogFormat == 0);
+    analogDataFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.analogFormat == 1);
+};
 
 # Fallback unit for incorrectly formatted frames #######################################################################
 type NotImplemented = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     : bytes &eod; # any remaining unparsed data
 };
-
-# 16-bytes interpreted as an ASCII-encoded string (for CFG-1 and CFG-2) #################################################
-#  - OR -
-# C37.118.2-2011, 6.4 Name field description, table 12 (for CFG-3) ######################################################
-type NameField = unit(frameType : FrameTypeCode) {
-    var trimmedName : string = "";
-
-    : bytes &size = 16 if (frameType != FrameTypeCode::CONFIG_3_FRAME) {
-        self.trimmedName = $$.decode(hilti::Charset::ASCII);
-        # TODO: spicy bug here (error ...: bound object has expired)
-        # self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::ASCII);
-        #
-        # https://github.com/zeek/spicy/issues/1390
-        # repro per @bbanier:
-        #      global input = b"   123   ";
-        #      public type X = unit {
-        #          var s: string;
-        #          x: bytes &eod &parse-from=input {
-        #              self.s = $$.strip(spicy::Side::Both).decode(spicy::Charset::ASCII);
-        #          }
-        #      };
-    }
-
-    nameLen : uint8 if (frameType == FrameTypeCode::CONFIG_3_FRAME);
-    : bytes &size = self.nameLen if (frameType == FrameTypeCode::CONFIG_3_FRAME) {
-        self.trimmedName = $$.decode(hilti::Charset::UTF8);
-    }
-
-} &convert=self.trimmedName;
 
 # C37.118.2-2011, 6.2.1 Overall message ################################################################################
 public type Frame = unit(inout frms : Frames) {
