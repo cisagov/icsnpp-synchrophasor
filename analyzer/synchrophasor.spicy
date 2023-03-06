@@ -209,45 +209,45 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
         self.initialized = True;
         frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
         if ((self?.pmuCfgs) && (|self.pmuCfgs| > 0)) {
-            for (i in self.pmuCfgs) {
-                if (|i.stationName| > 0) {
-                    self.allStationNames.push_back(i.stationName);
+            for (pmu in self.pmuCfgs) {
+                if (|pmu.stationName| > 0) {
+                    self.allStationNames.push_back(pmu.stationName);
                 }
-                for (j in i.phnam) {
-                    if (|j| > 0) {
-                        self.allPhasorNames.push_back(j);
+                for (ph in pmu.phnam) {
+                    if (|ph| > 0) {
+                        self.allPhasorNames.push_back(ph);
                     }
                 }
-                for (k in i.annam) {
-                    if (|k| > 0) {
-                        self.allAnalogNames.push_back(k);
+                for (an in pmu.annam) {
+                    if (|an| > 0) {
+                        self.allAnalogNames.push_back(an);
                     }
                 }
-                for (l in i.dgnam) {
-                    if (|l| > 0) {
-                        self.allDigitalNames.push_back(l);
+                for (dg in pmu.dgnam) {
+                    if (|dg| > 0) {
+                        self.allDigitalNames.push_back(dg);
                     }
                 }
             }
         }
         if ((self?.pmuCfg3s) && (|self.pmuCfg3s| > 0)) {
-            for (i in self.pmuCfg3s) {
-                if (|i.stationName| > 0) {
-                    self.allStationNames.push_back(i.stationName);
+            for (pmu3 in self.pmuCfg3s) {
+                if (|pmu3.stationName| > 0) {
+                    self.allStationNames.push_back(pmu3.stationName);
                 }
-                for (j in i.phnam) {
-                    if (|j| > 0) {
-                        self.allPhasorNames.push_back(j);
+                for (ph3 in pmu3.phnam) {
+                    if (|ph3| > 0) {
+                        self.allPhasorNames.push_back(ph3);
                     }
                 }
-                for (k in i.annam) {
-                    if (|k| > 0) {
-                        self.allAnalogNames.push_back(k);
+                for (an3 in pmu3.annam) {
+                    if (|an3| > 0) {
+                        self.allAnalogNames.push_back(an3);
                     }
                 }
-                for (l in i.dgnam) {
-                    if (|l| > 0) {
-                        self.allDigitalNames.push_back(l);
+                for (dg3 in pmu3.dgnam) {
+                    if (|dg3| > 0) {
+                        self.allDigitalNames.push_back(dg3);
                     }
                 }
             }
