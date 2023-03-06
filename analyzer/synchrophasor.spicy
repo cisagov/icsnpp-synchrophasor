@@ -90,10 +90,24 @@ public type CommandFrame = unit(header : FrameHeader, frms : Frames, chk : uint1
 
 # C37.118.2-2011, 6.5 Header frame, Table 13 ###########################################################################
 public type HeaderFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
-    data : bytes &eod;
+    var data : string = "";
+    : bytes &eod {
+        self.data = $$.decode(hilti::Charset::ASCII);
+    }
 };
 
-# C37.118.2-2011, 6.4 Configuration frame, Table 8 #####################################################################
+# C37.118.2-2011, 6.4 Word definitions unique to configuration frames 1 and 2, Table 9 #################################
+type ConfigFormat = unit() {
+    format : bitfield(16) {
+        phasorShape : 0;
+        phasorFormat : 1;
+        analogFormat : 2;
+        freqFormat : 3;
+        _ : 4..15;
+    };
+} &convert=self.format;
+
+# C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
 public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     var initialized : bool = False;
     var timeBase : uint32 = 1000000;
@@ -118,21 +132,15 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
 
 public type PMUConfig = unit(frms : Frames) {
     var initialized : bool = False;
-    stationName : ElementName;
+    stationName : SimpleName;
     dataSourceId : uint16;
-    format : bitfield(16) {
-        phasorShape : 0;
-        phasorFormat : 1;
-        analogFormat : 2;
-        freqFormat : 3;
-        _ : 4..15;
-    };
+    format : ConfigFormat;
     phnmr : uint16;
     annmr : uint16;
     dgnmr : uint16;
-    phnam : ElementName[self.phnmr];
-    annam : ElementName[self.annmr];
-    dgnam : ElementName[16 * self.dgnmr];
+    phnam : SimpleName[self.phnmr];
+    annam : SimpleName[self.annmr];
+    dgnam : SimpleName[16 * self.dgnmr];
     phunit : uint32[self.phnmr];
     anunit : uint32[self.annmr];
     digunit : uint32[self.dgnmr];
@@ -145,7 +153,7 @@ public type PMUConfig = unit(frms : Frames) {
     }
 };
 
-# C37.118.2-2011, 6.4 Configuration frame, Table 10 ####################################################################
+# C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
 public type Config3Frame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     var initialized : bool = False;
     var timeBase : uint32 = 1000000;
@@ -159,6 +167,8 @@ public type Config3Frame = unit(header : FrameHeader, frms : Frames, chk : uint1
         }
     }
     numPMU : uint16;
+    PMUs: PMUConfig3(frms)[self.numPMU];
+    dataRate : uint16;
     : bytes &eod; # any remaining unparsed data
 
     on %done {
@@ -169,11 +179,33 @@ public type Config3Frame = unit(header : FrameHeader, frms : Frames, chk : uint1
 
 public type PMUConfig3 = unit(frms : Frames) {
     var initialized : bool = False;
+    var svcClass : string = "";
+    stationName : NameField;
+    dataSourceId : uint16;
+    globalPMUID : bytes &size = 16;
+    format : ConfigFormat;
+    phnmr : uint16;
+    annmr : uint16;
+    dgnmr : uint16;
+    chname : NameField[self.phnmr+self.annmr+self.dgnmr];
+    phscale : bytes &size = (12*self.phnmr);
+    anscale : bytes &size = (8*self.annmr);
+    digunit : bytes &size = (4*self.dgnmr);
+    pmuLat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
+    pmuLon : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
+    pmuElev : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
+    var trimmedName : string = "";
+    : bytes &size = 1 {
+        self.svcClass = $$.decode(hilti::Charset::ASCII);
+    }
+    window : uint32;
+    groupDelay : uint32;
+    fnom : uint16;
+    cfgcnt : uint16;
 
     on %done {
         self.initialized = True;
-        # TODO
-        # frms.dataSourceIdPmuConfig3Map[self.dataSourceId] = self;
+        frms.dataSourceIdPmuConfig3Map[self.dataSourceId] = self;
     }
 };
 
@@ -240,10 +272,19 @@ type NotImplemented = unit(header : FrameHeader, frms : Frames, chk : uint16) {
 };
 
 # 16-bytes interpreted as an ASCII-encoded string #######################################################################
-type ElementName = unit() {
+type SimpleName = unit() {
     var trimmedName : string = "";
     : bytes &size = 16 {
         self.trimmedName = $$.decode(hilti::Charset::ASCII);
+    }
+} &convert=self.trimmedName;
+
+# C37.118.2-2011, 6.4 Name field description, table 12 ##################################################################
+type NameField = unit() {
+    var trimmedName : string = "";
+    nameLen : uint8;
+    : bytes &size = self.nameLen {
+        self.trimmedName = $$.decode(hilti::Charset::UTF8);
     }
 } &convert=self.trimmedName;
 

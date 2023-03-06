@@ -20,7 +20,8 @@ on SYNCHROPHASOR::CommandFrame -> event SYNCHROPHASOR::CommandFrame($conn,
                                                                     chk,
                                                                     header.sync.version,
                                                                     header.dataStreamId,
-                                                                    self.cmd);
+                                                                    self.cmd,
+                                                                    self.extframe);
 
 on SYNCHROPHASOR::Config3Frame -> event SYNCHROPHASOR::Config3Frame($conn,
                                                                     $is_orig,
@@ -64,4 +65,5 @@ on SYNCHROPHASOR::HeaderFrame -> event SYNCHROPHASOR::HeaderFrame($conn,
                                                                   header.frameSize,
                                                                   chk,
                                                                   header.sync.version,
-                                                                  header.dataStreamId);
+                                                                  header.dataStreamId,
+                                                                  self.data);

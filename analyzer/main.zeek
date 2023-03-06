@@ -59,7 +59,7 @@ export {
         id: conn_id &log;
 
         proto : string &log &optional;
-        payload : string &log &optional;
+        data : string &log &optional;
     };
 
     # synchrophasor_cfg.log columns
@@ -99,6 +99,16 @@ export {
       [6] = "3", # send CFG-3 frame
       [8] = "e", # extended frame
     } &default = "u"; # unknown
+
+    const COMMAND_CODES_STRINGS = {
+      [1] = "Data off", # turn off transmission of data frames
+      [2] = "Data on", # turn on transmission of data frames
+      [3] = "Send HDR", # send HDR frame
+      [4] = "Send CFG-1", # send CFG-1 frame
+      [5] = "Send CFG-2", # send CFG-2 frame
+      [6] = "Send CFG-3", # send CFG-3 frame
+      [8] = "Extended frame", # extended frame
+    } &default = "unknown"; # unknown
 
 }
 
@@ -342,7 +352,8 @@ event SYNCHROPHASOR::CommandFrame(c: connection,
                                   chk: count,
                                   version: count,
                                   dataStreamId: count,
-                                  cmd: count) {
+                                  cmd: count,
+                                  extframe: vector of count) {
     hook set_session_cmd(c);
 
     local info = c$synchrophasor;
@@ -359,6 +370,8 @@ event SYNCHROPHASOR::CommandFrame(c: connection,
     }
 
     info$history += COMMAND_CODES_INITIALS[cmd];
+    info_cmd$command = COMMAND_CODES_STRINGS[cmd];
+    info_cmd$extframe = extframe;
 
     emit_synchrophasor_cmd_log(c);
 }
@@ -463,7 +476,8 @@ event SYNCHROPHASOR::HeaderFrame(c: connection,
                                  frameSize: count,
                                  chk: count,
                                  version: count,
-                                 dataStreamId: count) {
+                                 dataStreamId: count,
+                                 data: string) {
     hook set_session_hdr(c);
 
     local info = c$synchrophasor;
@@ -478,6 +492,8 @@ event SYNCHROPHASOR::HeaderFrame(c: connection,
         if (frameSize > info$frame_size_max)
             info$frame_size_max = frameSize;
     }
+
+    info_hdr$data += data;
 
     emit_synchrophasor_hdr_log(c);
 }
