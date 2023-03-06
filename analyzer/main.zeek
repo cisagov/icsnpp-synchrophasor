@@ -74,6 +74,7 @@ export {
         proto : string &log &optional;
         frame_type : string &log &optional;
         cont_idx : count &log &optional;
+        pmu_count : count &log &optional;
         data_rate : count &log &optional;
         phasor_names : vector of string &log &optional;
         analog_names : vector of string &log &optional;
