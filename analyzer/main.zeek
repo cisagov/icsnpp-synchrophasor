@@ -197,12 +197,12 @@ hook set_session_cmd(c: connection) {
             $id=c$id,
             $proto="",
             $version=set(),
-            $history="",
             $data_stream_id=set(),
-            $data_rate=set(),
+            $history="",
             $frame_size_min=0,
             $frame_size_max=0,
-            $data_frame_count=0);
+            $data_frame_count=0,
+            $data_rate=set());
 
     if ( ! c?$synchrophasor_cmd )
         c$synchrophasor_cmd = Synchrophasor_Command(
@@ -224,12 +224,12 @@ hook set_session_hdr(c: connection) {
             $id=c$id,
             $proto="",
             $version=set(),
-            $history="",
             $data_stream_id=set(),
-            $data_rate=set(),
+            $history="",
             $frame_size_min=0,
             $frame_size_max=0,
-            $data_frame_count=0);
+            $data_frame_count=0,
+            $data_rate=set());
 
     if ( ! c?$synchrophasor_hdr )
         c$synchrophasor_hdr = Synchrophasor_Header(
@@ -250,12 +250,12 @@ hook set_session_cfg(c: connection) {
             $id=c$id,
             $proto="",
             $version=set(),
-            $history="",
             $data_stream_id=set(),
-            $data_rate=set(),
+            $history="",
             $frame_size_min=0,
             $frame_size_max=0,
-            $data_frame_count=0);
+            $data_frame_count=0,
+            $data_rate=set());
 
     if ( ! c?$synchrophasor_cfg )
         c$synchrophasor_cfg = Synchrophasor_Config(
@@ -281,12 +281,12 @@ hook set_session_data(c: connection) {
             $id=c$id,
             $proto="",
             $version=set(),
-            $history="",
             $data_stream_id=set(),
-            $data_rate=set(),
+            $history="",
             $frame_size_min=0,
             $frame_size_max=0,
-            $data_frame_count=0);
+            $data_frame_count=0,
+            $data_rate=set());
 
     if ( ! c?$synchrophasor_data )
         c$synchrophasor_data = Synchrophasor_Data(
@@ -423,9 +423,9 @@ event SYNCHROPHASOR::ConfigFrame(
     contIdx: count,
     numPMU: count,
     dataRate: count,
-    allPhasorNames: vector of count,
-    allAnalogNames: vector of count,
-    allDigitalNames: vector of count) {
+    allPhasorNames: vector of string,
+    allAnalogNames: vector of string,
+    allDigitalNames: vector of string) {
 
     if (initialized) {
         hook set_session_cfg(c);
