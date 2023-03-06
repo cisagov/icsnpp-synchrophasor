@@ -210,7 +210,7 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
         frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
         if ((self?.pmuCfgs) && (|self.pmuCfgs| > 0)) {
             for (pmu in self.pmuCfgs) {
-                if (|pmu.stationName| > 0) {
+                if ((pmu?.stationName) && (|pmu.stationName| > 0)) {
                     self.allStationNames.push_back(pmu.stationName);
                 }
                 for (ph in pmu.phnam) {
@@ -232,7 +232,7 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
         }
         if ((self?.pmuCfg3s) && (|self.pmuCfg3s| > 0)) {
             for (pmu3 in self.pmuCfg3s) {
-                if (|pmu3.stationName| > 0) {
+                if ((pmu3?.stationName) && (|pmu3.stationName| > 0)) {
                     self.allStationNames.push_back(pmu3.stationName);
                 }
                 for (ph3 in pmu3.phnam) {
