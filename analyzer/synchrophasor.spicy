@@ -202,7 +202,6 @@ public type ConfigFrame = unit(header : FrameHeader, inout frms : Frames, chk : 
     : bytes &eod; # any remaining unparsed data
 
     on %done {
-        self.initialized = True;
         frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
         if ((self?.pmuCfgs) && (|self.pmuCfgs| > 0)) {
             for (pmu in self.pmuCfgs) {
@@ -228,6 +227,7 @@ public type ConfigFrame = unit(header : FrameHeader, inout frms : Frames, chk : 
                 }
             }
         }
+        self.initialized = True;
     }
 };
 
@@ -294,8 +294,8 @@ public type PMUConfig = unit(header : FrameHeader, inout frms : Frames) {
     cfgcnt : uint16;
 
     on %done {
-        self.initialized = True;
         frms.dataSourceIdPmuConfigMap[self.dataSourceId] = self;
+        self.initialized = True;
     }
 };
 
@@ -332,6 +332,8 @@ type NameField = unit(frameType : FrameTypeCode) {
 public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     var cfgFrame : ConfigFrame;
     var pmuCfg : PMUConfig;
+    var cfgFound : bool = False;
+    var pmuFound : bool = False;
     var numPMU : uint16 = 0;
     var phnmr : uint16 = 0;
     var annmr : uint16 = 0;
@@ -342,6 +344,7 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
             (frms.streamSourceIdConfigFrameMap[header.dataStreamId].initialized == True)) {
             self.cfgFrame = frms.streamSourceIdConfigFrameMap[header.dataStreamId];
             self.numPMU = self.cfgFrame.numPMU;
+            self.cfgFound = True;
         }
         if ((header.dataStreamId in frms.dataSourceIdPmuConfigMap) &&
             (frms.dataSourceIdPmuConfigMap[header.dataStreamId].initialized == True)) {
@@ -349,10 +352,13 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
             self.phnmr = self.pmuCfg.phnmr;
             self.annmr = self.pmuCfg.annmr;
             self.dgnmr = self.pmuCfg.dgnmr;
+            self.pmuFound = True;
         }
     }
 
-    data: PMUData(header, frms, self.cfgFrame, self.pmuCfg)[self.numPMU] if ((self?.cfgFrame) && (self?.pmuCfg) && (self.numPMU > 0));
+    data: PMUData(header, frms, self.cfgFrame, self.pmuCfg)[self.numPMU] if ((self.cfgFound == True) &&
+                                                                             (self.pmuFound == True) &&
+                                                                             (self.numPMU > 0));
 
     : bytes &eod; # any remaining unparsed data
 };
