@@ -370,11 +370,11 @@ public type PMUData = unit(header : FrameHeader, frms : Frames, cfgFrame : Confi
         dataErrorIndicator : 14..15;
     };
 
-    phasors : PhasorEstimate(pmuCfg)[pmuCfg.phnmr];
+    phasors : PhasorEstimate(pmuCfg)[pmuCfg.phnmr] if ((pmuCfg?.phnmr) && (pmuCfg.phnmr > 0));
     freq : FrequencyDeviation(pmuCfg);
     dfreq : ROCOF(pmuCfg);
-    analog : AnalogData(pmuCfg)[pmuCfg.annmr];
-    digital : uint16[pmuCfg.dgnmr];
+    analog : AnalogData(pmuCfg)[pmuCfg.annmr] if ((pmuCfg?.annmr) && (pmuCfg.annmr > 0));
+    digital : uint16[pmuCfg.dgnmr] if ((pmuCfg?.dgnmr) && (pmuCfg.dgnmr > 0));
 };
 
 # Data type indicated by the FORMAT field in configuration 1, 2, and 3 frames
