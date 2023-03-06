@@ -70,6 +70,9 @@ export {
         id: conn_id &log;
 
         proto : string &log &optional;
+        cfg3 : bool &log &optional;
+        cont_idx : count &log &optional;
+        pmu_count : count &log &optional;
     };
 
     # synchrophasor_data.log columns
@@ -218,7 +221,7 @@ hook set_session_hdr(c: connection) {
                                $uid=c$uid,
                                $id=c$id,
                                $proto="",
-                               $payload="");
+                               $data="");
 }
 
 # cfg frame
@@ -242,7 +245,10 @@ hook set_session_cfg(c: connection) {
                                $ts=network_time(),
                                $uid=c$uid,
                                $id=c$id,
-                               $proto="");
+                               $proto="",
+                               cfg3=F,
+                               cont_idx=0,
+                               pmu_count=0);
 }
 
 # data frame
@@ -384,9 +390,10 @@ event SYNCHROPHASOR::Config3Frame(c: connection,
                                   version: count,
                                   dataStreamId: count,
                                   initialized: bool,
-                                  contIdx: count,
                                   timeBase: count,
-                                  numPMU: count) {
+                                  contIdx: count,
+                                  numPMU: count,
+                                  dataRate: count) {
     if (initialized) {
         hook set_session_cfg(c);
 
@@ -395,6 +402,7 @@ event SYNCHROPHASOR::Config3Frame(c: connection,
 
         add info$version[version];
         add info$data_stream_id[dataStreamId];
+        add info$data_rate[dataRate];
 
         if (frameSize > 0) {
             if ((frameSize < info$frame_size_min) || (info$frame_size_min == 0))
@@ -493,7 +501,7 @@ event SYNCHROPHASOR::HeaderFrame(c: connection,
             info$frame_size_max = frameSize;
     }
 
-    info_hdr$data += data;
+    info_hdr$data = data;
 
     emit_synchrophasor_hdr_log(c);
 }

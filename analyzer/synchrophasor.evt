@@ -31,9 +31,10 @@ on SYNCHROPHASOR::Config3Frame -> event SYNCHROPHASOR::Config3Frame($conn,
                                                                     header.sync.version,
                                                                     header.dataStreamId,
                                                                     self.initialized,
-                                                                    self.contIdx,
                                                                     self.timeBase,
-                                                                    self.numPMU);
+                                                                    self.contIdx,
+                                                                    self.numPMU,
+                                                                    self.dataRate);
 
 on SYNCHROPHASOR::ConfigFrame -> event SYNCHROPHASOR::ConfigFrame($conn,
                                                                   $is_orig,
