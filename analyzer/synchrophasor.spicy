@@ -194,13 +194,7 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
     }
 
     numPMU : uint16;
-
-    switch ( header.sync.frameType ) {
-        FrameTypeCode::CONFIG_1_FRAME,
-        FrameTypeCode::CONFIG_2_FRAME -> pmuCfgs : PMUConfig(frms)[self.numPMU];
-        FrameTypeCode::CONFIG_3_FRAME -> pmuCfg3s : PMUConfig3(frms)[self.numPMU];
-    };
-
+    pmuCfgs : PMUConfig(header, frms)[self.numPMU];
     dataRate : int16;
 
     : bytes &eod; # any remaining unparsed data
@@ -232,48 +226,73 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
                 }
             }
         }
-        if ((self?.pmuCfg3s) && (|self.pmuCfg3s| > 0)) {
-            for (pmu3 in self.pmuCfg3s) {
-                if (pmu3.initialized == True) {
-                    if ((pmu3?.stationName) && (|pmu3.stationName| > 0)) {
-                        self.allStationNames.push_back(pmu3.stationName);
-                    }
-                    for (ph3 in pmu3.phnam) {
-                        if (|ph3| > 0) {
-                            self.allPhasorNames.push_back(ph3);
-                        }
-                    }
-                    for (an3 in pmu3.annam) {
-                        if (|an3| > 0) {
-                            self.allAnalogNames.push_back(an3);
-                        }
-                    }
-                    for (dg3 in pmu3.dgnam) {
-                        if (|dg3| > 0) {
-                            self.allDigitalNames.push_back(dg3);
-                        }
-                    }
-                }
-            }
-        }
     }
 };
 
-public type PMUConfig = unit(frms : Frames) {
-    var initialized : bool = False;
-    stationName : SimpleName;
-    dataSourceId : uint16;
+# CFG-1 and CFG-2: Table 8  - fields 8-19
+# CFG-3:           Table 10 - fields 9-27
+public type PMUConfig = unit(header : FrameHeader, frms : Frames) {
+    var frameType: FrameTypeCode = FrameTypeCode::Undef;     # stored from header.sync.frameType
+    var initialized : bool = False;                          # set to True on %done
+    var svcClass : string = "";                              # only for CFG-3
+    var dgnmrMult : uint32;                                  # used for the byte length of the dgnam field
+
+    stationName : NameField(header.sync.frameType);
+
+    dataSourceId : uint16 {
+        self.frameType = header.sync.frameType;
+    }
+
+    globalPMUID : bytes &size = 16 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+
     format : ConfigFormat;
+
+    # phasor/analog/digital counts
     phnmr : uint16;
     annmr : uint16;
-    dgnmr : uint16;
-    phnam : SimpleName[self.phnmr];
-    annam : SimpleName[self.annmr];
-    dgnam : SimpleName[16 * self.dgnmr];
-    phunit : PhasorConversionFactor[self.phnmr];
-    anunit : AnalogConversionFactor[self.annmr];
+    dgnmr : uint16 {
+        # used for the byte length of the dgnam field
+        if (self.frameType == FrameTypeCode::CONFIG_3_FRAME) {
+            self.dgnmrMult = 1;
+        } else {
+            self.dgnmrMult = 16;
+        }
+    }
+
+    # phasor/analog/digital names
+    phnam : NameField(self.frameType)[self.phnmr];
+    annam : NameField(self.frameType)[self.annmr];
+    dgnam : NameField(self.frameType)[self.dgnmrMult * self.dgnmr];
+
+    # conversion factor for phasor channels (CFG-1 and CFG-2)
+    phunit : PhasorConversionFactor[self.phnmr] if (self.frameType != FrameTypeCode::CONFIG_3_FRAME);
+    # conversion factor for phasor channels with flags (CFG-3)
+    phscale : PhasorScale[self.phnmr] if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+
+    # conversion factor for analog channels (CFG-1 and CFG-2)
+    anunit : AnalogConversionFactor[self.annmr] if (self.frameType != FrameTypeCode::CONFIG_3_FRAME);
+    # conversion factor for analog channels (CFG-3)
+    anscale : AnalogScale[self.annmr] if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+
+    # mask words for digital status words
     digunit : DigitalStatusMaskWords[self.dgnmr];
+
+    # WGS84 datum for PMU location (CFG-3)
+    pmuLat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    pmuLon : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    pmuElev : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+
+    # service class, measurement window and measurement group delay (CFG-3)
+    : bytes &size = 1 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME) {
+        self.svcClass = $$.decode(hilti::Charset::ASCII);
+    }
+    window : int32 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    groupDelay : int32 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+
+    # nominal line frequency code and flags
     fnom : uint16;
+
+    # configuration change count
     cfgcnt : uint16;
 
     on %done {
@@ -282,46 +301,11 @@ public type PMUConfig = unit(frms : Frames) {
     }
 };
 
-public type PMUConfig3 = unit(frms : Frames) {
-    var initialized : bool = False;
-    var svcClass : string = "";
-    stationName : NameField;
-    dataSourceId : uint16;
-    globalPMUID : bytes &size = 16;
-    format : ConfigFormat;
-    phnmr : uint16;
-    annmr : uint16;
-    dgnmr : uint16;
-    phnam : NameField[self.phnmr];
-    annam : NameField[self.annmr];
-    dgnam : NameField[self.dgnmr];
-    phscale : PhasorScale[self.phnmr];
-    anscale : AnalogScale[self.annmr];
-    digunit : DigitalStatusMaskWords[self.dgnmr];
-    pmuLat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
-    pmuLon : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
-    pmuElev : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
-    var trimmedName : string = "";
-    : bytes &size = 1 {
-        self.svcClass = $$.decode(hilti::Charset::ASCII);
-    }
-    window : int32;
-    groupDelay : int32;
-    fnom : uint16;
-    cfgcnt : uint16;
-
-    on %done {
-        self.initialized = True;
-        frms.dataSourceIdPmuConfig3Map[self.dataSourceId] = self;
-    }
-};
-
 # C37.118.2-2011, 6.3 Data frame, Table 5 ##############################################################################
 public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     var cfgFrame : ConfigFrame;
     var numPMU : uint16 = 0;
     var pmuCfg : PMUConfig;
-    var pmuCfg3 : PMUConfig3;
     var phnmr : uint16 = 0;
     var annmr : uint16 = 0;
     var dgnmr : uint16 = 0;
@@ -349,20 +333,13 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
             self.annmr = self.pmuCfg.annmr;
             self.dgnmr = self.pmuCfg.dgnmr;
         }
-        if ((header.dataStreamId in frms.dataSourceIdPmuConfig3Map) &&
-            (frms.dataSourceIdPmuConfig3Map[header.dataStreamId].initialized == True)) {
-            self.pmuCfg3 = frms.dataSourceIdPmuConfig3Map[header.dataStreamId];
-            self.phnmr = self.pmuCfg3.phnmr;
-            self.annmr = self.pmuCfg3.annmr;
-            self.dgnmr = self.pmuCfg3.dgnmr;
-        }
     }
 
-    data: PMUData(self.cfgFrame, self.pmuCfg, self.pmuCfg3)[self.numPMU];
+    data: PMUData(self.cfgFrame, self.pmuCfg)[self.numPMU];
     : bytes &eod; # any remaining unparsed data
 };
 
-public type PMUData = unit(cfgFrame : ConfigFrame, pmuCfg : PMUConfig, pmuCfg3 : PMUConfig3) {
+public type PMUData = unit(cfgFrame : ConfigFrame, pmuCfg : PMUConfig) {
   # TODO
 };
 
@@ -371,10 +348,13 @@ type NotImplemented = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     : bytes &eod; # any remaining unparsed data
 };
 
-# 16-bytes interpreted as an ASCII-encoded string #######################################################################
-type SimpleName = unit() {
+# 16-bytes interpreted as an ASCII-encoded string (for CFG-1 and CFG-2) #################################################
+#  - OR -
+# C37.118.2-2011, 6.4 Name field description, table 12 (for CFG-3) ######################################################
+type NameField = unit(frameType : FrameTypeCode) {
     var trimmedName : string = "";
-    : bytes &size = 16 {
+
+    : bytes &size = 16 if (frameType != FrameTypeCode::CONFIG_3_FRAME) {
         self.trimmedName = $$.decode(hilti::Charset::ASCII);
         # TODO: spicy bug here (error ...: bound object has expired)
         # self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::ASCII);
@@ -389,16 +369,16 @@ type SimpleName = unit() {
         #          }
         #      };
     }
+
+    nameLen : uint8 if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    : bytes &size = self.nameLen if (frameType == FrameTypeCode::CONFIG_3_FRAME) {
+        self.trimmedName = $$.decode(hilti::Charset::UTF8);
+    }
+
 } &convert=self.trimmedName;
 
 # C37.118.2-2011, 6.4 Name field description, table 12 ##################################################################
-type NameField = unit() {
-    var trimmedName : string = "";
-    nameLen : uint8;
-    : bytes &size = self.nameLen {
-        self.trimmedName = $$.decode(hilti::Charset::UTF8);
-    }
-} &convert=self.trimmedName;
+
 
 # C37.118.2-2011, 6.2.1 Overall message ################################################################################
 public type Frame = unit(inout frms : Frames) {
@@ -425,7 +405,6 @@ public type Frame = unit(inout frms : Frames) {
 
 public type Frames = unit() {
     var dataSourceIdPmuConfigMap : map<uint16, PMUConfig>;
-    var dataSourceIdPmuConfig3Map : map<uint16, PMUConfig3>;
     var streamSourceIdConfigFrameMap : map<uint16, ConfigFrame>;
     frms : Frame(self)[];
 };
