@@ -6,12 +6,13 @@ Industrial Control Systems Network Protocol Parsers (ICSNPP) - Synchrophasor Dat
 
 ICSNPP-Synchrophasor is a Zeek plugin (written in [Spicy](https://docs.zeek.org/projects/spicy/en/latest/)) for parsing and logging fields used by the Synchrophasor protocol as presented in the IEEE standard C37.118, defining a transmission format for reporting synchronized phasor measurements in power systems.
 
-This parser produces the following files, defined in [analyzer/main.zeek](analyzer/main.zeek):
-    * `synchrophasor.log`
-    * `synchrophasor_cmd.log`
-    * `synchrophasor_hdr.log`
-    * `synchrophasor_cfg.log`
-    * `synchrophasor_data.log`
+This parser produces the following log files, defined in [analyzer/main.zeek](analyzer/main.zeek):
+
+* `synchrophasor.log`
+* `synchrophasor_cmd.log`
+* `synchrophasor_hdr.log`
+* `synchrophasor_cfg.log`
+* `synchrophasor_data.log`
 
 For additional information on this log file, see the *Logging Capabilities* section below.
 
