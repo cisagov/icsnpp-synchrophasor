@@ -452,10 +452,15 @@ event SYNCHROPHASOR::ConfigFrame(
         info_cfg$cont_idx = contIdx;
         info_cfg$pmu_count = numPMU;
         info_cfg$data_rate = dataRate;
-        info_cfg$station_names = allStationNames;
-        info_cfg$phasor_names = allPhasorNames;
-        info_cfg$analog_names = allAnalogNames;
-        info_cfg$digital_names = allDigitalNames;
+
+        for (i in allStationNames)
+            info_cfg$station_names += strip(i);
+        for (i in allPhasorNames)
+            info_cfg$phasor_names += strip(i);
+        for (i in allAnalogNames)
+            info_cfg$analog_names += strip(i);
+        for (i in allDigitalNames)
+            info_cfg$digital_names += strip(i);
 
         emit_synchrophasor_cfg_log(c);
     }

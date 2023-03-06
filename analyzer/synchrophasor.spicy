@@ -210,44 +210,48 @@ public type ConfigFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
         frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
         if ((self?.pmuCfgs) && (|self.pmuCfgs| > 0)) {
             for (pmu in self.pmuCfgs) {
-                if ((pmu?.stationName) && (|pmu.stationName| > 0)) {
-                    self.allStationNames.push_back(pmu.stationName);
-                }
-                for (ph in pmu.phnam) {
-                    if (|ph| > 0) {
-                        self.allPhasorNames.push_back(ph);
+                if (pmu.initialized == True) {
+                    if ((pmu?.stationName) && (|pmu.stationName| > 0)) {
+                        self.allStationNames.push_back(pmu.stationName);
                     }
-                }
-                for (an in pmu.annam) {
-                    if (|an| > 0) {
-                        self.allAnalogNames.push_back(an);
+                    for (ph in pmu.phnam) {
+                        if (|ph| > 0) {
+                            self.allPhasorNames.push_back(ph);
+                        }
                     }
-                }
-                for (dg in pmu.dgnam) {
-                    if (|dg| > 0) {
-                        self.allDigitalNames.push_back(dg);
+                    for (an in pmu.annam) {
+                        if (|an| > 0) {
+                            self.allAnalogNames.push_back(an);
+                        }
+                    }
+                    for (dg in pmu.dgnam) {
+                        if (|dg| > 0) {
+                            self.allDigitalNames.push_back(dg);
+                        }
                     }
                 }
             }
         }
         if ((self?.pmuCfg3s) && (|self.pmuCfg3s| > 0)) {
             for (pmu3 in self.pmuCfg3s) {
-                if ((pmu3?.stationName) && (|pmu3.stationName| > 0)) {
-                    self.allStationNames.push_back(pmu3.stationName);
-                }
-                for (ph3 in pmu3.phnam) {
-                    if (|ph3| > 0) {
-                        self.allPhasorNames.push_back(ph3);
+                if (pmu3.initialized == True) {
+                    if ((pmu3?.stationName) && (|pmu3.stationName| > 0)) {
+                        self.allStationNames.push_back(pmu3.stationName);
                     }
-                }
-                for (an3 in pmu3.annam) {
-                    if (|an3| > 0) {
-                        self.allAnalogNames.push_back(an3);
+                    for (ph3 in pmu3.phnam) {
+                        if (|ph3| > 0) {
+                            self.allPhasorNames.push_back(ph3);
+                        }
                     }
-                }
-                for (dg3 in pmu3.dgnam) {
-                    if (|dg3| > 0) {
-                        self.allDigitalNames.push_back(dg3);
+                    for (an3 in pmu3.annam) {
+                        if (|an3| > 0) {
+                            self.allAnalogNames.push_back(an3);
+                        }
+                    }
+                    for (dg3 in pmu3.dgnam) {
+                        if (|dg3| > 0) {
+                            self.allDigitalNames.push_back(dg3);
+                        }
                     }
                 }
             }
@@ -371,7 +375,18 @@ type NotImplemented = unit(header : FrameHeader, frms : Frames, chk : uint16) {
 type SimpleName = unit() {
     var trimmedName : string = "";
     : bytes &size = 16 {
-        self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::ASCII);
+        self.trimmedName = $$.decode(hilti::Charset::ASCII);
+        # TODO: spicy bug here (error ...: bound object has expired)
+        # self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::ASCII);
+        #
+        # repro per @bbanier:
+        #      global input = b"   123   ";
+        #      public type X = unit {
+        #          var s: string;
+        #          x: bytes &eod &parse-from=input {
+        #              self.s = $$.strip(spicy::Side::Both).decode(spicy::Charset::ASCII);
+        #          }
+        #      };
     }
 } &convert=self.trimmedName;
 
