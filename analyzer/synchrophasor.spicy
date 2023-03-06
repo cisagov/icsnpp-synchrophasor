@@ -95,6 +95,9 @@ public type HeaderFrame = unit(header : FrameHeader, frms : Frames, chk : uint16
 };
 
 # C37.118.2-2011, 6.4 Word definitions unique to configuration frames 1 and 2, Table 9 #################################
+# - and/or -
+# C37.118.2-2011, 6.4 Word definitions unique to configuration frame 3, Table 11 #######################################
+
 public type ConfigFormat = unit() {
     format : bitfield(16) {
         phasorShape : 0;
@@ -105,39 +108,15 @@ public type ConfigFormat = unit() {
     };
 } &convert=self.format;
 
-public type PhasorConversionFactor = unit() {
+public type PhasorConversionFactor = unit(frameType : FrameTypeCode) {
+
+    # CFG-1 and CFG-2
     format : bitfield(32) {
         phunit : 0..7;
         phvalue : 8..31;
-    };
-} &convert=self.format;
+    } if (frameType != FrameTypeCode::CONFIG_3_FRAME);
 
-public type AnalogConversionFactor = unit() {
-    var analogFlags : uint8 = 0;
-    var userDefinedScaling : int32 = 0;
-    : bitfield(32) {
-        analogFlags : 0..7;
-        userDefinedScaling : 8..31;
-    } {
-        self.analogFlags = cast<uint8>($$.analogFlags);
-        self.userDefinedScaling = cast<int32>($$.userDefinedScaling);
-    }
-};
-
-public type DigitalStatusMaskWords = unit() {
-    normalStatusMask : uint16;
-    validInputsMask : uint16;
-};
-
-public type NominalLineFreq = unit() {
-    code : bitfield(16) {
-        fundamentalFreq : 0;
-        _ : 1..15;
-    };
-} &convert=self.code;
-
-# C37.118.2-2011, 6.4 Word definitions unique to configuration frame 3, Table 11 #######################################
-public type PhasorScale = unit() {
+    # CFG-3
     flags : bitfield(16) {
         _ : 0;
         upsampledInterpolation : 1;
@@ -152,21 +131,47 @@ public type PhasorScale = unit() {
         pseudoPhasorVal : 10;
         _ : 11..14;
         modAppl : 15;
-    };
+    } if (frameType == FrameTypeCode::CONFIG_3_FRAME);
     typeInd : bitfield(8) {
         phasorComponent : 0..2;
         phasorType : 3;
         _ : 4..7;
-    };
-    userDef : uint8;
-    scaleFactor : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
-    angleAdj : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
+    } if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    userDef : uint8 if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    scaleFactor : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    angleAdj : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+
 };
 
-public type AnalogScale = unit() {
-    magScale : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
-    offset : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big;
+public type AnalogConversionFactor = unit(frameType : FrameTypeCode) {
+    # CFG-1 and CFG -2
+    var analogFlags : uint8 = 0;
+    var userDefinedScaling : int32 = 0;
+
+    : bitfield(32) {
+        analogFlags : 0..7;
+        userDefinedScaling : 8..31;
+    } if (frameType != FrameTypeCode::CONFIG_3_FRAME) {
+        self.analogFlags = cast<uint8>($$.analogFlags);
+        self.userDefinedScaling = cast<int32>($$.userDefinedScaling);
+    }
+
+    # CFG-3
+    magScale : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    offset : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (frameType == FrameTypeCode::CONFIG_3_FRAME);
 };
+
+public type DigitalStatusMaskWords = unit() {
+    normalStatusMask : uint16;
+    validInputsMask : uint16;
+};
+
+public type NominalLineFreq = unit() {
+    code : bitfield(16) {
+        fundamentalFreq : 0;
+        _ : 1..15;
+    };
+} &convert=self.code;
 
 # C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
 # C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
@@ -264,15 +269,11 @@ public type PMUConfig = unit(header : FrameHeader, frms : Frames) {
     annam : NameField(self.frameType)[self.annmr];
     dgnam : NameField(self.frameType)[self.dgnmrMult * self.dgnmr];
 
-    # conversion factor for phasor channels (CFG-1 and CFG-2)
-    phunit : PhasorConversionFactor[self.phnmr] if (self.frameType != FrameTypeCode::CONFIG_3_FRAME);
-    # conversion factor for phasor channels with flags (CFG-3)
-    phscale : PhasorScale[self.phnmr] if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    # conversion factor for phasor channels
+    phunit : PhasorConversionFactor(self.frameType)[self.phnmr];
 
-    # conversion factor for analog channels (CFG-1 and CFG-2)
-    anunit : AnalogConversionFactor[self.annmr] if (self.frameType != FrameTypeCode::CONFIG_3_FRAME);
-    # conversion factor for analog channels (CFG-3)
-    anscale : AnalogScale[self.annmr] if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    # conversion factor for analog channels
+    anunit : AnalogConversionFactor(self.frameType)[self.annmr];
 
     # mask words for digital status words
     digunit : DigitalStatusMaskWords[self.dgnmr];
@@ -376,9 +377,6 @@ type NameField = unit(frameType : FrameTypeCode) {
     }
 
 } &convert=self.trimmedName;
-
-# C37.118.2-2011, 6.4 Name field description, table 12 ##################################################################
-
 
 # C37.118.2-2011, 6.2.1 Overall message ################################################################################
 public type Frame = unit(inout frms : Frames) {
