@@ -433,7 +433,8 @@ event SYNCHROPHASOR::ConfigFrame(
     initialized: bool,
     timeBase: count,
     contIdx: count,
-    numPMU: count,
+    numPMUExpected: count,
+    numPMUActual: count,
     dataRate: count,
     allStationNames: vector of string,
     allPhasorNames: vector of string,
@@ -485,10 +486,9 @@ event SYNCHROPHASOR::DataFrame(
     chk: count,
     version: count,
     dataStreamId: count,
-    numPMU: count,
-    phnmr: count,
-    annmr: count,
-    dgnmr: count) {
+    initialized: bool,
+    numPMUExpected: count,
+    numPMUActual: count) {
 
     hook set_session_data(c);
 

@@ -178,6 +178,7 @@ public type ConfigFrame = unit(header : FrameHeader, inout frms : Frames, chk : 
     var cfgNum : bool = False;
     var timeBase : uint32 = 1000000;
     var contIdx : uint16 = 0;
+    var numPMUActual : uint16 = 0;
     var allStationNames : vector<string>;
     var allPhasorNames : vector<string>;
     var allAnalogNames : vector<string>;
@@ -196,14 +197,13 @@ public type ConfigFrame = unit(header : FrameHeader, inout frms : Frames, chk : 
         }
     }
 
-    numPMU : uint16;
-    pmuCfgs : PMUConfig(header, frms)[self.numPMU];
+    numPMUExpected : uint16;
+    pmuCfgs : PMUConfig(header, frms, self)[self.numPMUExpected];
     dataRate : int16;
 
     : bytes &eod; # any remaining unparsed data
 
     on %done {
-        frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
         if ((self?.pmuCfgs) && (|self.pmuCfgs| > 0)) {
             for (pmu in self.pmuCfgs) {
                 if (pmu.initialized == True) {
@@ -228,15 +228,17 @@ public type ConfigFrame = unit(header : FrameHeader, inout frms : Frames, chk : 
                 }
             }
         }
-        self.initialized = True;
+        self.initialized = (self.numPMUActual == self.numPMUExpected);
+        frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
     }
 };
 
 # CFG-1 and CFG-2: Table 8  - fields 8-19
 # CFG-3:           Table 10 - fields 9-27
-public type PMUConfig = unit(header : FrameHeader, inout frms : Frames) {
+public type PMUConfig = unit(header : FrameHeader, inout frms : Frames, inout cfgFrm : ConfigFrame) {
     var frameType: FrameTypeCode = FrameTypeCode::Undef;     # stored from header.sync.frameType
     var initialized : bool = False;                          # set to True on %done
+    var pmuIdx : uint16 = 0;                                 # position in parent's (cfgFrm's) pmuCfgs
     var svcClass : string = "";                              # only for CFG-3
     var dgnmrMult : uint32;                                  # used for the byte length of the dgnam field
 
@@ -295,7 +297,8 @@ public type PMUConfig = unit(header : FrameHeader, inout frms : Frames) {
     cfgcnt : uint16;
 
     on %done {
-        frms.dataSourceIdPmuConfigMap[self.dataSourceId] = self;
+        self.pmuIdx = cfgFrm.numPMUActual;
+        cfgFrm.numPMUActual += 1;
         self.initialized = True;
     }
 };
@@ -331,19 +334,25 @@ type NameField = unit(frameType : FrameTypeCode) {
 
 # C37.118.2-2011, 6.3 Data frame, Table 5 and Table 6 ##################################################################
 public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
+    var initialized : bool = False;  # set to True on %done
     var cfgFrame : ConfigFrame;
-    var pmuCfg : PMUConfig;
     var cfgFound : bool = False;
-    var pmuFound : bool = False;
-    var numPMU : uint16 = 0;
-    var phnmr : uint16 = 0;
-    var annmr : uint16 = 0;
-    var dgnmr : uint16 = 0;
+    var numPMUExpected : uint16 = 0;
+    var numPMUActual : uint16 = 0;
 
     data: PMUData(header, frms, self)[] &eod;
+
+    on %done {
+        self.initialized = ((self.cfgFound == True) && (self.numPMUExpected == self.numPMUActual));
+    }
 };
 
 public type PMUData = unit(header : FrameHeader, frms : Frames, inout dataFrm : DataFrame) {
+    var initialized : bool = False;  # set to True on %done
+    var pmuFound : bool = False;
+    var pmuIdx : uint16 = 0;         # position in parent's (dataFrm's) data
+    var pmuCfg : PMUConfig;
+
     stat : bitfield(16) {
         triggerReason : 0..3;
         unlockedTime : 4..5;
@@ -355,32 +364,35 @@ public type PMUData = unit(header : FrameHeader, frms : Frames, inout dataFrm : 
         pmuSyncError : 13;
         dataErrorIndicator : 14..15;
     } {
+        self.pmuIdx = dataFrm.numPMUActual;
+        dataFrm.numPMUActual += 1;
+
         if ((dataFrm.cfgFound == False) &&
             (header.dataStreamId in frms.streamSourceIdConfigFrameMap) &&
             (frms.streamSourceIdConfigFrameMap[header.dataStreamId].initialized == True)) {
             dataFrm.cfgFrame = frms.streamSourceIdConfigFrameMap[header.dataStreamId];
-            dataFrm.numPMU = dataFrm.cfgFrame.numPMU;
+            dataFrm.numPMUExpected = dataFrm.cfgFrame.numPMUExpected;
             dataFrm.cfgFound = True;
         }
-        if ((dataFrm.pmuFound == False) &&
-            (header.dataStreamId in frms.dataSourceIdPmuConfigMap) &&
-            (frms.dataSourceIdPmuConfigMap[header.dataStreamId].initialized == True)) {
-            dataFrm.pmuCfg = frms.dataSourceIdPmuConfigMap[header.dataStreamId];
-            dataFrm.phnmr = dataFrm.pmuCfg.phnmr;
-            dataFrm.annmr = dataFrm.pmuCfg.annmr;
-            dataFrm.dgnmr = dataFrm.pmuCfg.dgnmr;
-            dataFrm.pmuFound = True;
+        if ((dataFrm.cfgFound == True) &&
+            (self.pmuIdx < |dataFrm.cfgFrame.pmuCfgs|) &&
+            (dataFrm.cfgFrame.pmuCfgs[self.pmuIdx].initialized == True)) {
+            self.pmuCfg = dataFrm.cfgFrame.pmuCfgs[self.pmuIdx];
+            self.pmuFound = True;
         }
     }
 
-    phasors : PhasorEstimate(dataFrm.pmuCfg)[dataFrm.pmuCfg.phnmr] if ((dataFrm.pmuFound == True) &&
-                                                                       (dataFrm.pmuCfg.phnmr > 0));
-    freq    : FrequencyDeviation(dataFrm.pmuCfg)                   if (dataFrm.pmuFound == True);
-    dfreq   : ROCOF(dataFrm.pmuCfg)                                if (dataFrm.pmuFound == True);
-    analog  : AnalogData(dataFrm.pmuCfg)[dataFrm.pmuCfg.annmr]     if ((dataFrm.pmuFound == True) &&
-                                                                       (dataFrm.pmuCfg.annmr > 0));
-    digital : uint16[dataFrm.pmuCfg.dgnmr]                         if ((dataFrm.pmuFound == True) &&
-                                                                       (dataFrm.pmuCfg.dgnmr > 0));
+    phasors : PhasorEstimate(self.pmuCfg)[self.pmuCfg.phnmr]   if ((self.pmuFound == True) &&
+                                                                   (self.pmuCfg.phnmr > 0));
+    freq    : FrequencyDeviation(self.pmuCfg)                  if (self.pmuFound == True);
+    dfreq   : ROCOF(self.pmuCfg)                               if (self.pmuFound == True);
+    analog  : AnalogData(self.pmuCfg)[self.pmuCfg.annmr]       if ((self.pmuFound == True) &&
+                                                                   (self.pmuCfg.annmr > 0));
+    digital : uint16[self.pmuCfg.dgnmr]                        if ((self.pmuFound == True) &&
+                                                                   (self.pmuCfg.dgnmr > 0));
+    on %done {
+        self.initialized = (self.pmuFound == True);
+    }
 };
 
 # Data type indicated by the FORMAT field in configuration 1, 2, and 3 frames
@@ -476,7 +488,6 @@ public type Frame = unit(inout frms : Frames) {
 };
 
 public type Frames = unit() {
-    var dataSourceIdPmuConfigMap : map<uint16, PMUConfig>;
     var streamSourceIdConfigFrameMap : map<uint16, ConfigFrame>;
     frms : Frame(self)[];
 };

@@ -37,7 +37,8 @@ on SYNCHROPHASOR::ConfigFrame -> event SYNCHROPHASOR::ConfigFrame(
     self.initialized,
     self.timeBase,
     self.contIdx,
-    self.numPMU,
+    self.numPMUExpected,
+    self.numPMUActual,
     self.dataRate,
     self.allStationNames,
     self.allPhasorNames,
@@ -56,10 +57,9 @@ on SYNCHROPHASOR::DataFrame -> event SYNCHROPHASOR::DataFrame(
     chk,
     header.sync.version,
     header.dataStreamId,
-    self.numPMU,
-    self.phnmr,
-    self.annmr,
-    self.dgnmr);
+    self.initialized,
+    self.numPMUExpected,
+    self.numPMUActual);
 # TODO: as described in C37.118.2-2011, 6.3, and parsed with DataFrame and PMUData
 #   types in synchrophasor.spicy, data frames can be pretty complicated and very verbose.
 #   Rather than include every possible field in this event, for now I'm going to observe how this parser
