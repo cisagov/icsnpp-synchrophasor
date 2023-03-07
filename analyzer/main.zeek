@@ -501,8 +501,6 @@ event SYNCHROPHASOR::DataFrame(
     local info_data = c$synchrophasor_data;
 
     info_data$frame_type = FRAME_TYPES[frameType];
-    info_data$pmu_count_expected = numPMUExpected;
-    info_data$pmu_count_actual = numPMUActual;
 
     add info$version[version];
     add info$data_stream_id[dataStreamId];
@@ -515,6 +513,9 @@ event SYNCHROPHASOR::DataFrame(
     }
 
     info$data_frame_count += 1;
+
+    info_data$pmu_count_expected = numPMUExpected;
+    info_data$pmu_count_actual = numPMUActual;
 
     emit_synchrophasor_data_log(c);
 }

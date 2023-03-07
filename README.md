@@ -110,20 +110,21 @@ As described in C37.118.2-2011, section 6.4, and parsed with the `ConfigFrame`, 
 
 #### Fields Captured
 
-| Field             | Type           | Description                                               |
-| ----------------- |----------------|-----------------------------------------------------------|
-| ts                | time           | Timestamp                                                 |
-| uid               | string         | Unique ID for this connection                             |
-| id                | conn_id        | Default Zeek connection info (IP addresses, ports)        |
-| proto             | string         | Transport protocol                                        |
-| frame_type        | string         | Frame type from synchrophasor frame synchronization word  |
-| cont_idx          | count          | Continuation index for fragmented frames                  |
-| pmu_count         | count          | The number of PMUs included in the configuration frame    |
-| data_rate         | count          | Rate of data transmission                                 |
-| station_names     | vector<string> | Station name(s) included in PMU configuration(s)          |
-| phasor_names      | vector<string> | Phasor name(s) included in PMU configuration(s)           |
-| analog_names      | vector<string> | Analog name(s) included in PMU configuration(s)           |
-| digital_names     | vector<string> | Digital name(s) included in PMU configuration(s)          |
+| Field              | Type           | Description                                               |
+| -------------------|----------------|-----------------------------------------------------------|
+| ts                 | time           | Timestamp                                                 |
+| uid                | string         | Unique ID for this connection                             |
+| id                 | conn_id        | Default Zeek connection info (IP addresses, ports)        |
+| proto              | string         | Transport protocol                                        |
+| frame_type         | string         | Frame type from synchrophasor frame synchronization word  |
+| cont_idx           | count          | Continuation index for fragmented frames                  |
+| pmu_count_expected | count          | The number of PMUs expected in the configuration frame    |
+| pmu_count_actual   | count          | The number of PMUs included in the configuration frame    |
+| data_rate          | count          | Rate of data transmission                                 |
+| station_names      | vector<string> | Station name(s) included in PMU configuration(s)          |
+| phasor_names       | vector<string> | Phasor name(s) included in PMU configuration(s)           |
+| analog_names       | vector<string> | Analog name(s) included in PMU configuration(s)           |
+| digital_names      | vector<string> | Digital name(s) included in PMU configuration(s)          |
 
 ### Synchrophasor Data Frame Log (synchrophasor_data.log)
 
@@ -135,13 +136,15 @@ As described in C37.118.2-2011, section 6.3, and parsed with the `DataFrame` and
 
 #### Fields Captured
 
-| Field             | Type           | Description                                               |
-| ----------------- |----------------|-----------------------------------------------------------|
-| ts                | time           | Timestamp                                                 |
-| uid               | string         | Unique ID for this connection                             |
-| id                | conn_id        | Default Zeek connection info (IP addresses, ports)        |
-| proto             | string         | Transport protocol                                        |
-| frame_type        | string         | Frame type from synchrophasor frame synchronization word  |
+| Field              | Type           | Description                                               |
+| -------------------|----------------|-----------------------------------------------------------|
+| ts                 | time           | Timestamp                                                 |
+| uid                | string         | Unique ID for this connection                             |
+| id                 | conn_id        | Default Zeek connection info (IP addresses, ports)        |
+| proto              | string         | Transport protocol                                        |
+| frame_type         | string         | Frame type from synchrophasor frame synchronization word  |
+| pmu_count_expected | count          | The number of PMUs expected in the data frame             |
+| pmu_count_actual   | count          | The number of PMUs included in the data frame             |
 
 ## ICSNPP Packages
 
