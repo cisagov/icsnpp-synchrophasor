@@ -79,7 +79,8 @@ export {
         proto : string &log &optional;
         frame_type : string &log &optional;
         cont_idx : count &log &optional;
-        pmu_count : count &log &optional;
+        pmu_count_expected : count &log &optional;
+        pmu_count_actual : count &log &optional;
         data_rate : count &log &optional;
         station_names : vector of string &log &optional;
         phasor_names : vector of string &log &optional;
@@ -101,6 +102,8 @@ export {
 
         proto : string &log &optional;
         frame_type : string &log &optional;
+        pmu_count_expected : count &log &optional;
+        pmu_count_actual : count &log &optional;
     };
 
     # global events for logging
@@ -276,7 +279,8 @@ hook set_session_cfg(c: connection) {
             $proto="",
             $frame_type="",
             $cont_idx=0,
-            $pmu_count=0,
+            $pmu_count_expected=0,
+            $pmu_count_actual=0,
             $data_rate=0,
             $station_names=vector(),
             $phasor_names=vector(),
@@ -306,7 +310,9 @@ hook set_session_data(c: connection) {
             $uid=c$uid,
             $id=c$id,
             $proto="",
-            $frame_type="");
+            $frame_type="",
+            $pmu_count_expected=0,
+            $pmu_count_actual=0);
 }
 
 # emit_synchrophasor*log functions generate log entries for their
@@ -441,40 +447,39 @@ event SYNCHROPHASOR::ConfigFrame(
     allAnalogNames: vector of string,
     allDigitalNames: vector of string) {
 
-    if (initialized) {
-        hook set_session_cfg(c);
+    hook set_session_cfg(c);
 
-        local info = c$synchrophasor;
-        local info_cfg = c$synchrophasor_cfg;
+    local info = c$synchrophasor;
+    local info_cfg = c$synchrophasor_cfg;
 
-        info_cfg$frame_type = FRAME_TYPES[frameType];
+    info_cfg$frame_type = FRAME_TYPES[frameType];
 
-        add info$version[version];
-        add info$data_stream_id[dataStreamId];
-        add info$data_rate[dataRate];
+    add info$version[version];
+    add info$data_stream_id[dataStreamId];
+    add info$data_rate[dataRate];
 
-        if (frameSize > 0) {
-            if ((frameSize < info$frame_size_min) || (info$frame_size_min == 0))
-                info$frame_size_min = frameSize;
-            if (frameSize > info$frame_size_max)
-                info$frame_size_max = frameSize;
-        }
-
-        info_cfg$cont_idx = contIdx;
-        info_cfg$pmu_count = numPMU;
-        info_cfg$data_rate = dataRate;
-
-        for (i, val in allStationNames)
-            info_cfg$station_names += strip(val);
-        for (i, val in allPhasorNames)
-            info_cfg$phasor_names += strip(val);
-        for (i, val in allAnalogNames)
-            info_cfg$analog_names += strip(val);
-        for (i, val in allDigitalNames)
-            info_cfg$digital_names += strip(val);
-
-        emit_synchrophasor_cfg_log(c);
+    if (frameSize > 0) {
+        if ((frameSize < info$frame_size_min) || (info$frame_size_min == 0))
+            info$frame_size_min = frameSize;
+        if (frameSize > info$frame_size_max)
+            info$frame_size_max = frameSize;
     }
+
+    info_cfg$cont_idx = contIdx;
+    info_cfg$pmu_count_expected = numPMUExpected;
+    info_cfg$pmu_count_actual = numPMUActual;
+    info_cfg$data_rate = dataRate;
+
+    for (i, val in allStationNames)
+        info_cfg$station_names += strip(val);
+    for (i, val in allPhasorNames)
+        info_cfg$phasor_names += strip(val);
+    for (i, val in allAnalogNames)
+        info_cfg$analog_names += strip(val);
+    for (i, val in allDigitalNames)
+        info_cfg$digital_names += strip(val);
+
+    emit_synchrophasor_cfg_log(c);
 }
 
 event SYNCHROPHASOR::DataFrame(
@@ -496,6 +501,8 @@ event SYNCHROPHASOR::DataFrame(
     local info_data = c$synchrophasor_data;
 
     info_data$frame_type = FRAME_TYPES[frameType];
+    info_data$pmu_count_expected = numPMUExpected;
+    info_data$pmu_count_actual = numPMUActual;
 
     add info$version[version];
     add info$data_stream_id[dataStreamId];
