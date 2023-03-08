@@ -13,7 +13,7 @@ protocol analyzer spicy::SYNCHROPHASOR_UDP over UDP:
     parse with SYNCHROPHASOR::Frames,
     port 4713/udp;
 
-on SYNCHROPHASOR::CommandFrame -> event SYNCHROPHASOR::CommandFrame(
+on SYNCHROPHASOR::CommandFrame::%done -> event SYNCHROPHASOR::CommandFrame(
     $conn,
     $is_orig,
     header.sync.frameType,
@@ -25,7 +25,7 @@ on SYNCHROPHASOR::CommandFrame -> event SYNCHROPHASOR::CommandFrame(
     self.cmd,
     self.extframe);
 
-on SYNCHROPHASOR::ConfigFrame -> event SYNCHROPHASOR::ConfigFrame(
+on SYNCHROPHASOR::ConfigFrame::%done -> event SYNCHROPHASOR::ConfigFrame(
     $conn,
     $is_orig,
     header.sync.frameType,
@@ -48,7 +48,7 @@ on SYNCHROPHASOR::ConfigFrame -> event SYNCHROPHASOR::ConfigFrame(
 #   types, configuration frames can be pretty complicated. Rather than include every possible field
 #   into this event, for now I'm going to observe how this parser does in the field and expand as needed.
 
-on SYNCHROPHASOR::DataFrame -> event SYNCHROPHASOR::DataFrame(
+on SYNCHROPHASOR::DataFrame::%done -> event SYNCHROPHASOR::DataFrame(
     $conn,
     $is_orig,
     header.sync.frameType,
@@ -65,7 +65,7 @@ on SYNCHROPHASOR::DataFrame -> event SYNCHROPHASOR::DataFrame(
 #   Rather than include every possible field in this event, for now I'm going to observe how this parser
 #   does in the field and expand as needed.
 
-on SYNCHROPHASOR::HeaderFrame -> event SYNCHROPHASOR::HeaderFrame(
+on SYNCHROPHASOR::HeaderFrame::%done -> event SYNCHROPHASOR::HeaderFrame(
     $conn,
     $is_orig,
     header.sync.frameType,

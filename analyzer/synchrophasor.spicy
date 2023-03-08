@@ -344,6 +344,7 @@ public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) 
 
     on %done {
         self.initialized = ((self.cfgFound == True) && (self.numPMUExpected == self.numPMUActual));
+        print self;
     }
 };
 
@@ -392,6 +393,7 @@ public type PMUData = unit(header : FrameHeader, frms : Frames, inout dataFrm : 
                                                                    (self.pmuCfg.dgnmr > 0));
     on %done {
         self.initialized = (self.pmuFound == True);
+        print self;
     }
 };
 
