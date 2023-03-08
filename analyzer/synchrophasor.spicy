@@ -393,7 +393,6 @@ public type PMUData = unit(header : FrameHeader, frms : Frames, inout dataFrm : 
                                                                    (self.pmuCfg.dgnmr > 0));
     on %done {
         self.initialized = (self.pmuFound == True);
-        print self;
     }
 };
 
