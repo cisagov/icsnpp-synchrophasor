@@ -515,6 +515,7 @@ public type Frame = unit(inout parent : Frames) {
 
     on %init {
         self.frameIdx = |parent.frames|;
+        print "Frame", self.frameIdx, "init", parent.streamIdConfigFrameIdxMap;
     }
 
     header : FrameHeader(parent, self);
@@ -535,6 +536,10 @@ public type Frame = unit(inout parent : Frames) {
       self.parseError = True;
     }
 
+    on %done {
+        print "Frame", self.frameIdx, "done", parent.streamIdConfigFrameIdxMap;
+    }
+
 };
 
 public type Frames = unit() {
@@ -546,8 +551,12 @@ public type Frames = unit() {
     var streamIdConfigFrameIdxMap : map<uint16, uint32>;
 
     on %init {
-        self.streamIdConfigFrameIdxMap.clear();
+        print "Frames.init", self.streamIdConfigFrameIdxMap;
     }
 
     frames : Frame(self)[];
+
+    on %done {
+        print "Frames.done", self.streamIdConfigFrameIdxMap;
+    }
 };
