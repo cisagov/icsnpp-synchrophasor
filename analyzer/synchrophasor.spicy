@@ -43,7 +43,7 @@ public type SyncField = unit() {
 };
 
 # C37.118.2-2011, 6.2.2 Time and message time quality ##################################################################
-public type FracSec = unit(parent : Frames, header : FrameHeader) {
+public type FracSec = unit(header : FrameHeader, frms : Frames) {
     var fracSec  : real = 0.0;
 
     data : bitfield(32) {
@@ -57,17 +57,15 @@ public type FracSec = unit(parent : Frames, header : FrameHeader) {
 
     # perform calculation of fractional seconds based on configuration's TIME_BASE (C37.118.2-2011, 6.2.2)
     on %done {
-        if (header.dataStreamId in parent.streamIdConfigFrameIdxMap) {
-            local frmIdx = parent.streamIdConfigFrameIdxMap[header.dataStreamId];
-            if ((frmIdx < |parent.frames|) && (parent.frames[frmIdx].CONFIG_FRAME.initialized == True)) {
-                self.fracSec = cast<real>(self.data.fracSecRaw) / cast<real>(parent.frames[frmIdx].CONFIG_FRAME.timeBase);
-            }
+        if ((header.dataStreamId in frms.streamSourceIdConfigFrameMap) &&
+            (frms.streamSourceIdConfigFrameMap[header.dataStreamId].initialized == True)) {
+            self.fracSec = cast<real>(self.data.fracSecRaw) / cast<real>(frms.streamSourceIdConfigFrameMap[header.dataStreamId].timeBase);
         }
     }
 };
 
 # C37.118.2-2011, 6.2.1 Overall message ################################################################################
-public type FrameHeader = unit(parent : Frames, message : Frame) {
+public type FrameHeader = unit(frms : Frames) {
     var timeStamp : time;
     sync : SyncField;
     frameSize : uint16;
@@ -75,19 +73,19 @@ public type FrameHeader = unit(parent : Frames, message : Frame) {
     : uint32 {
         self.timeStamp = cast<time>($$);
     }
-    fracSec : FracSec(parent, self) {
+    fracSec : FracSec(self, frms) {
         self.timeStamp = self.timeStamp + cast<interval>(self.fracSec.fracSec);
     }
 };
 
 # C37.118.2-2011, 6.6 Command frame, Table 14 ##########################################################################
-public type CommandFrame = unit(parent : Frames, message : Frame) {
+public type CommandFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     cmd : uint16;
     extframe : uint16[] &eod;
 };
 
 # C37.118.2-2011, 6.5 Header frame, Table 13 ###########################################################################
-public type HeaderFrame = unit(parent : Frames, message : Frame) {
+public type HeaderFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     var data : string = "";
     : bytes &eod {
         self.data = $$.decode(hilti::Charset::ASCII);
@@ -175,7 +173,7 @@ public type NominalLineFreq = unit() {
 
 # C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
 # C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
-public type ConfigFrame = unit(inout parent : Frames, message : Frame) {
+public type ConfigFrame = unit(header : FrameHeader, inout frms : Frames, chk : uint16) {
     var initialized : bool = False;
     var cfgNum : bool = False;
     var timeBase : uint32 = 1000000;
@@ -186,7 +184,7 @@ public type ConfigFrame = unit(inout parent : Frames, message : Frame) {
     var allAnalogNames : vector<string>;
     var allDigitalNames : vector<string>;
 
-    : uint16 if (message.header.sync.frameType == FrameTypeCode::CONFIG_3_FRAME) {
+    : uint16 if (header.sync.frameType == FrameTypeCode::CONFIG_3_FRAME) {
         self.contIdx = $$;
     }
 
@@ -200,7 +198,7 @@ public type ConfigFrame = unit(inout parent : Frames, message : Frame) {
     }
 
     numPMUExpected : uint16;
-    pmuCfgs : PMUConfig(parent, message.header, self)[self.numPMUExpected];
+    pmuCfgs : PMUConfig(header, frms, self)[self.numPMUExpected];
     dataRate : int16;
 
     : bytes &eod; # any remaining unparsed data
@@ -230,17 +228,17 @@ public type ConfigFrame = unit(inout parent : Frames, message : Frame) {
                 }
             }
         }
-        self.initialized = ((self.numPMUActual == self.numPMUExpected) && (message?.frameIdx));
-        parent.streamIdConfigFrameIdxMap[message.header.dataStreamId] = message.frameIdx;
+        self.initialized = (self.numPMUActual == self.numPMUExpected);
+        frms.streamSourceIdConfigFrameMap[header.dataStreamId] = self;
     }
 };
 
 # CFG-1 and CFG-2: Table 8  - fields 8-19
 # CFG-3:           Table 10 - fields 9-27
-public type PMUConfig = unit(inout parent : Frames, header : FrameHeader, inout cfgFrm : ConfigFrame) {
+public type PMUConfig = unit(header : FrameHeader, inout frms : Frames, inout cfgFrm : ConfigFrame) {
     var frameType: FrameTypeCode = FrameTypeCode::Undef;     # stored from header.sync.frameType
     var initialized : bool = False;                          # set to True on %done
-    var pmuIdx : uint64 = 0;                                 # position in parent's (cfgFrm's) pmuCfgs
+    var pmuIdx : uint16 = 0;                                 # position in parent's (cfgFrm's) pmuCfgs
     var svcClass : string = "";                              # only for CFG-3
     var dgnmrMult : uint32;                                  # used for the byte length of the dgnam field
 
@@ -335,24 +333,25 @@ type NameField = unit(frameType : FrameTypeCode) {
 } &convert=self.trimmedName;
 
 # C37.118.2-2011, 6.3 Data frame, Table 5 and Table 6 ##################################################################
-public type DataFrame = unit(parent : Frames, message : Frame) {
+public type DataFrame = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     var initialized : bool = False;  # set to True on %done
-    var cfgFrameIdx : uint64;
+    var cfgFrame : ConfigFrame;
     var cfgFound : bool = False;
     var numPMUExpected : uint16 = 0;
     var numPMUActual : uint16 = 0;
 
-    data: PMUData(parent, message.header, self)[] &eod;
+    data: PMUData(header, frms, self)[] &eod;
 
     on %done {
         self.initialized = ((self.cfgFound == True) && (self.numPMUExpected == self.numPMUActual));
     }
 };
 
-public type PMUData = unit(parent : Frames, header : FrameHeader, inout dataFrm : DataFrame) {
+public type PMUData = unit(header : FrameHeader, frms : Frames, inout dataFrm : DataFrame) {
     var initialized : bool = False;  # set to True on %done
     var pmuFound : bool = False;
-    var pmuIdx : uint64;             # position in parent's (dataFrm's) data
+    var pmuIdx : uint16 = 0;         # position in parent's (dataFrm's) data
+    var pmuCfg : PMUConfig;
 
     stat : bitfield(16) {
         triggerReason : 0..3;
@@ -369,47 +368,30 @@ public type PMUData = unit(parent : Frames, header : FrameHeader, inout dataFrm 
         dataFrm.numPMUActual += 1;
 
         if ((dataFrm.cfgFound == False) &&
-            (header.dataStreamId in parent.streamIdConfigFrameIdxMap)) {
-            local frmIdx = parent.streamIdConfigFrameIdxMap[header.dataStreamId];
-            if ((frmIdx < |parent.frames|) && (parent.frames[frmIdx].CONFIG_FRAME.initialized == True)) {
-                dataFrm.cfgFrameIdx = frmIdx;
-                dataFrm.numPMUExpected = parent.frames[dataFrm.cfgFrameIdx].CONFIG_FRAME.numPMUExpected;
-                dataFrm.cfgFound = True;
-            }
+            (header.dataStreamId in frms.streamSourceIdConfigFrameMap) &&
+            (frms.streamSourceIdConfigFrameMap[header.dataStreamId].initialized == True)) {
+            dataFrm.cfgFrame = frms.streamSourceIdConfigFrameMap[header.dataStreamId];
+            dataFrm.numPMUExpected = dataFrm.cfgFrame.numPMUExpected;
+            dataFrm.cfgFound = True;
         }
         if ((dataFrm.cfgFound == True) &&
-            (self.pmuIdx < |parent.frames[dataFrm.cfgFrameIdx].CONFIG_FRAME.pmuCfgs|) &&
-            (parent.frames[dataFrm.cfgFrameIdx].CONFIG_FRAME.pmuCfgs[self.pmuIdx].initialized == True)) {
+            (self.pmuIdx < |dataFrm.cfgFrame.pmuCfgs|) &&
+            (dataFrm.cfgFrame.pmuCfgs[self.pmuIdx].initialized == True)) {
+            self.pmuCfg = dataFrm.cfgFrame.pmuCfgs[self.pmuIdx];
             self.pmuFound = True;
         }
     }
 
-    phasors : PhasorEstimate
-        (parent, dataFrm.cfgFrameIdx, self.pmuIdx)
-        [parent.frames[dataFrm.cfgFrameIdx].CONFIG_FRAME.pmuCfgs[self.pmuIdx].phnmr]
-        if ((self.pmuFound == True) &&
-            (parent.frames[dataFrm.cfgFrameIdx].CONFIG_FRAME.pmuCfgs[self.pmuIdx].phnmr > 0));
-
-    freq    : FrequencyDeviation
-        (parent, dataFrm.cfgFrameIdx, self.pmuIdx)
-        if (self.pmuFound == True);
-
-    dfreq   : ROCOF
-        (parent, dataFrm.cfgFrameIdx, self.pmuIdx)
-        if (self.pmuFound == True);
-
-    analog  : AnalogData
-        (parent, dataFrm.cfgFrameIdx, self.pmuIdx)
-        [parent.frames[dataFrm.cfgFrameIdx].CONFIG_FRAME.pmuCfgs[self.pmuIdx].annmr]
-        if ((self.pmuFound == True) &&
-            (parent.frames[dataFrm.cfgFrameIdx].CONFIG_FRAME.pmuCfgs[self.pmuIdx].annmr > 0));
-
-    digital : uint16[parent.frames[dataFrm.cfgFrameIdx].CONFIG_FRAME.pmuCfgs[self.pmuIdx].dgnmr]
-        if ((self.pmuFound == True) &&
-            (parent.frames[dataFrm.cfgFrameIdx].CONFIG_FRAME.pmuCfgs[self.pmuIdx].dgnmr > 0));
-
+    phasors : PhasorEstimate(self.pmuCfg)[self.pmuCfg.phnmr]   if ((self.pmuFound == True) &&
+                                                                   (self.pmuCfg.phnmr > 0));
+    freq    : FrequencyDeviation(self.pmuCfg)                  if (self.pmuFound == True);
+    dfreq   : ROCOF(self.pmuCfg)                               if (self.pmuFound == True);
+    analog  : AnalogData(self.pmuCfg)[self.pmuCfg.annmr]       if ((self.pmuFound == True) &&
+                                                                   (self.pmuCfg.annmr > 0));
+    digital : uint16[self.pmuCfg.dgnmr]                        if ((self.pmuFound == True) &&
+                                                                   (self.pmuCfg.dgnmr > 0));
     on %done {
-        self.initialized = ((self.pmuFound == True) && (self?.pmuIdx));
+        self.initialized = (self.pmuFound == True);
     }
 };
 
@@ -429,40 +411,23 @@ public type PMUData = unit(parent : Frames, header : FrameHeader, inout dataFrm 
 # Polar format:
 # -magnitude and angle, magnitude first and in engineering units
 # -angle in radians, range –π to + π
-public type PhasorEstimate = unit(parent : Frames, cfgFrameIdx : uint64, pmuIdx : uint64) {
-    rectangular : PhasorRectangular(parent, cfgFrameIdx, pmuIdx)
-                  if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.phasorShape == 0);
-
-    polar       : PhasorRectangular(parent, cfgFrameIdx, pmuIdx)
-                  if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.phasorShape == 1);
+public type PhasorEstimate = unit(pmuCfg : PMUConfig) {
+    rectangular : PhasorRectangular(pmuCfg) if (pmuCfg.format.phasorShape == 0);
+    polar       : PhasorRectangular(pmuCfg) if (pmuCfg.format.phasorShape == 1);
 };
 
-public type PhasorRectangular = unit(parent : Frames, cfgFrameIdx : uint64, pmuIdx : uint64) {
-    realValInt          : int16
-                          if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.phasorFormat == 0);
-
-    realValFloat        : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big
-                          if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.phasorFormat == 1);
-
-    imaginaryValInt     : int16
-                          if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.phasorFormat == 0);
-
-    imaginaryValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big
-                          if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.phasorFormat == 1);
+public type PhasorRectangular = unit(pmuCfg : PMUConfig) {
+    realValInt          : int16                                                                        if (pmuCfg.format.phasorFormat == 0);
+    realValFloat        : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
+    imaginaryValInt     : int16                                                                        if (pmuCfg.format.phasorFormat == 0);
+    imaginaryValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
 };
 
-public type PhasorPolar = unit(parent : Frames, cfgFrameIdx : uint64, pmuIdx : uint64) {
-    magnitudeValInt     : uint16
-                          if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.phasorFormat == 0);
-
-    magnitudeValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big
-                          if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.phasorFormat == 1);
-
-    angleValInt         : int16
-                          if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.phasorFormat == 0);
-
-    angleValFloat       : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big
-                          if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.phasorFormat == 1);
+public type PhasorPolar = unit(pmuCfg : PMUConfig) {
+    magnitudeValInt     : uint16                                                                       if (pmuCfg.format.phasorFormat == 0);
+    magnitudeValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
+    angleValInt         : int16                                                                        if (pmuCfg.format.phasorFormat == 0);
+    angleValFloat       : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
 };
 
 # Frequency deviation from nominal, in mHz
@@ -471,92 +436,58 @@ public type PhasorPolar = unit(parent : Frames, cfgFrameIdx : uint64, pmuIdx : u
 # 16-bit integer: 16-bit signed integers, range –32 767 to +32 767
 # 32-bit floating point: actual frequency value in IEEE floating-point format.
 # Data type indicated by the FORMAT field in configuration 1, 2, and 3 frames
-public type FrequencyDeviation = unit(parent : Frames, cfgFrameIdx : uint64, pmuIdx : uint64) {
-    freqDevMhzInt   : int16
-                      if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.freqFormat == 0);
-
-    freqDevMhzFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big
-                      if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.freqFormat == 1);
+public type FrequencyDeviation = unit(pmuCfg : PMUConfig) {
+    freqDevMhzInt   : int16                                                                        if (pmuCfg.format.freqFormat == 0);
+    freqDevMhzFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.freqFormat == 1);
 };
 
 # ROCOF, in hertz per second times 100
 # Range –327.67 to +327.67 Hz per second
 # Can be 16-bit integer or IEEE floating point, same as FREQ above. Data type indicated
 # by the FORMAT field in configuration 1, 2, and 3 frames
-public type ROCOF = unit(parent : Frames, cfgFrameIdx : uint64, pmuIdx : uint64) {
-    rocofInt   : int16
-                 if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.freqFormat == 0);
-
-    rocofFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big
-                 if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.freqFormat == 1);
+public type ROCOF = unit(pmuCfg : PMUConfig) {
+    rocofInt   : int16                                                                        if (pmuCfg.format.freqFormat == 0);
+    rocofFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.freqFormat == 1);
 };
 
 # Analog word. 16-bit integer. It could be sampled data such as control signal or
 # transducer value. Values and ranges defined by user.
 # Can be 16-bit integer or IEEE floating point. Data type indicated by the FORMAT field
 # in configuration 1, 2, and 3 frames
-public type AnalogData = unit(parent : Frames, cfgFrameIdx : uint64, pmuIdx : uint64) {
-    analogDataInt   : int16
-                      if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.analogFormat == 0);
-
-    analogDataFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big
-                      if (parent.frames[cfgFrameIdx].CONFIG_FRAME.pmuCfgs[pmuIdx].format.analogFormat == 1);
+public type AnalogData = unit(pmuCfg : PMUConfig) {
+    analogDataInt   : int16                                                                        if (pmuCfg.format.analogFormat == 0);
+    analogDataFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.analogFormat == 1);
 };
 
 # Fallback unit for incorrectly formatted frames #######################################################################
-type NotImplemented = unit(parent : Frames, message : Frame) {
+type NotImplemented = unit(header : FrameHeader, frms : Frames, chk : uint16) {
     : bytes &eod; # any remaining unparsed data
 };
 
 # C37.118.2-2011, 6.2.1 Overall message ################################################################################
-public type Frame = unit(inout parent : Frames) {
+public type Frame = unit(inout frms : Frames) {
     var parseError : bool = False;
-    var frameIdx : uint64;
 
-    on %init {
-        self.frameIdx = |parent.frames|;
-        print "Frame", self.frameIdx, "init", parent.streamIdConfigFrameIdxMap;
-    }
-
-    header : FrameHeader(parent, self);
+    header : FrameHeader(frms);
     _payload : bytes &size=(self.header.frameSize - 16);
     chk : uint16;
 
     switch (self.header.sync.frameType) {
-        FrameTypeCode::DATA_FRAME     -> DATA_FRAME       : DataFrame(parent, self);
-        FrameTypeCode::HEADER_FRAME   -> HEADER_FRAME     : HeaderFrame(parent, self);
-        FrameTypeCode::COMMAND_FRAME  -> COMMAND_FRAME    : CommandFrame(parent, self);
+        FrameTypeCode::DATA_FRAME     -> DATA_FRAME       : DataFrame(self.header, frms, self.chk);
+        FrameTypeCode::HEADER_FRAME   -> HEADER_FRAME     : HeaderFrame(self.header, frms, self.chk);
+        FrameTypeCode::COMMAND_FRAME  -> COMMAND_FRAME    : CommandFrame(self.header, frms, self.chk);
         FrameTypeCode::CONFIG_1_FRAME,
         FrameTypeCode::CONFIG_2_FRAME,
-        FrameTypeCode::CONFIG_3_FRAME -> CONFIG_FRAME     : ConfigFrame(parent, self);
-        *                             ->                  : NotImplemented(parent, self);
+        FrameTypeCode::CONFIG_3_FRAME -> CONFIG_FRAME     : ConfigFrame(self.header, frms, self.chk);
+        *                             ->                  : NotImplemented(self.header, frms, self.chk);
     } &parse-from=self._payload if (self.header.sync.frameType);
 
     on %error {
       self.parseError = True;
     }
-
-    on %done {
-        print "Frame", self.frameIdx, "done", parent.streamIdConfigFrameIdxMap;
-    }
-
 };
 
 public type Frames = unit() {
-    # streamIdConfigFrameIdxMap maps FrameHeader.dataStreamId to the
-    #   index in the frames array below which corresponds to the
-    #   most recently seen ConfigFrame describing the format of
-    #   a DataFrame for that data stream ID. Without this,
-    #   it's impossible to decode a DataFrame.
-    var streamIdConfigFrameIdxMap : map<uint16, uint32>;
-
-    on %init {
-        print "Frames.init", self.streamIdConfigFrameIdxMap;
-    }
-
-    frames : Frame(self)[];
-
-    on %done {
-        print "Frames.done", self.streamIdConfigFrameIdxMap;
-    }
+    var streamSourceIdConfigFrameMap : map<uint16, ConfigFrame>;
+    frms : Frame(self)[];
 };
