@@ -554,6 +554,5 @@ event SYNCHROPHASOR::HeaderFrame(
 }
 
 event connection_state_remove(c: connection) {
-    # TODO: For UDP protocols, you may want to do this after every request and/or reply.
     emit_synchrophasor_log_all(c);
 }
