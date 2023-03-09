@@ -48,6 +48,7 @@ export {
 
         proto : string &log &optional;
         frame_type : string &log &optional;
+        frame_size : count &log &optional;
         command : string &log &optional;
         extframe : vector of count &log &optional;
     };
@@ -61,6 +62,7 @@ export {
 
         proto : string &log &optional;
         frame_type : string &log &optional;
+        frame_size : count &log &optional;
         data : string &log &optional;
     };
 
@@ -78,6 +80,7 @@ export {
 
         proto : string &log &optional;
         frame_type : string &log &optional;
+        frame_size : count &log &optional;
         cont_idx : count &log &optional;
         pmu_count_expected : count &log &optional;
         pmu_count_actual : count &log &optional;
@@ -102,6 +105,7 @@ export {
 
         proto : string &log &optional;
         frame_type : string &log &optional;
+        frame_size : count &log &optional;
         pmu_count_expected : count &log &optional;
         pmu_count_actual : count &log &optional;
     };
@@ -225,6 +229,7 @@ hook set_session_cmd(c: connection) {
             $id=c$id,
             $proto="",
             $frame_type="",
+            $frame_size=0,
             $command="",
             $extframe=vector());
 }
@@ -252,6 +257,7 @@ hook set_session_hdr(c: connection) {
             $id=c$id,
             $proto="",
             $frame_type="",
+            $frame_size=0,
             $data="");
 }
 
@@ -278,6 +284,7 @@ hook set_session_cfg(c: connection) {
             $id=c$id,
             $proto="",
             $frame_type="",
+            $frame_size=0,
             $cont_idx=0,
             $pmu_count_expected=0,
             $pmu_count_actual=0,
@@ -311,6 +318,7 @@ hook set_session_data(c: connection) {
             $id=c$id,
             $proto="",
             $frame_type="",
+            $frame_size=0,
             $pmu_count_expected=0,
             $pmu_count_actual=0);
 }
@@ -409,6 +417,7 @@ event SYNCHROPHASOR::CommandFrame(
     local info_cmd = c$synchrophasor_cmd;
 
     info_cmd$frame_type = FRAME_TYPES[frameType];
+    info_cmd$frame_size = frameSize;
 
     add info$version[version];
     add info$data_stream_id[dataStreamId];
@@ -453,6 +462,7 @@ event SYNCHROPHASOR::ConfigFrame(
     local info_cfg = c$synchrophasor_cfg;
 
     info_cfg$frame_type = FRAME_TYPES[frameType];
+    info_cfg$frame_size = frameSize;
 
     add info$version[version];
     add info$data_stream_id[dataStreamId];
@@ -501,6 +511,7 @@ event SYNCHROPHASOR::DataFrame(
     local info_data = c$synchrophasor_data;
 
     info_data$frame_type = FRAME_TYPES[frameType];
+    info_data$frame_size = frameSize;
 
     add info$version[version];
     add info$data_stream_id[dataStreamId];
@@ -537,6 +548,7 @@ event SYNCHROPHASOR::HeaderFrame(
     local info_hdr = c$synchrophasor_hdr;
 
     info_hdr$frame_type = FRAME_TYPES[frameType];
+    info_hdr$frame_size = frameSize;
 
     add info$version[version];
     add info$data_stream_id[dataStreamId];

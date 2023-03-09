@@ -79,6 +79,7 @@ This log captures and summarizes synchrophasor Command frames.
 | id                | conn_id        | Default Zeek connection info (IP addresses, ports)        |
 | proto             | string         | Transport protocol                                        |
 | frame_type        | string         | Frame type from synchrophasor frame synchronization word  |
+| frame_size        | count          | Frame size (in bytes)                                     |
 | command           | string         | String represetnation of the command                      |
 | extframe          | vector<count>  | Extended frame data (user-defined)                        |
 
@@ -97,6 +98,7 @@ This log captures and summarizes synchrophasor Header frames.
 | id                | conn_id        | Default Zeek connection info (IP addresses, ports)        |
 | proto             | string         | Transport protocol                                        |
 | frame_type        | string         | Frame type from synchrophasor frame synchronization word  |
+| frame_size        | count          | Frame size (in bytes)                                     |
 | command           | string         | String represetnation of the command                      |
 | data              | string         | Human-readable header data (user-defined)                 |
 
@@ -117,6 +119,7 @@ As described in C37.118.2-2011, section 6.4, and parsed with the `ConfigFrame`, 
 | id                 | conn_id        | Default Zeek connection info (IP addresses, ports)        |
 | proto              | string         | Transport protocol                                        |
 | frame_type         | string         | Frame type from synchrophasor frame synchronization word  |
+| frame_size         | count          | Frame size (in bytes)                                     |
 | cont_idx           | count          | Continuation index for fragmented frames                  |
 | pmu_count_expected | count          | The number of PMUs expected in the configuration frame    |
 | pmu_count_actual   | count          | The number of PMUs included in the configuration frame    |
@@ -143,6 +146,7 @@ As described in C37.118.2-2011, section 6.3, and parsed with the `DataFrame` and
 | id                 | conn_id        | Default Zeek connection info (IP addresses, ports)        |
 | proto              | string         | Transport protocol                                        |
 | frame_type         | string         | Frame type from synchrophasor frame synchronization word  |
+| frame_size         | count          | Frame size (in bytes)                                     |
 | pmu_count_expected | count          | The number of PMUs expected in the data frame             |
 | pmu_count_actual   | count          | The number of PMUs included in the data frame             |
 
