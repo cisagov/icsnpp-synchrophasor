@@ -6,7 +6,7 @@
 #unset_field	-
 #path	synchrophasor
 #open XXXX-XX-XX-XX-XX-XX
-#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	version	data_stream_id	history	frame_size_min	frame_size_max	data_frame_count	data_rate
-#types	time	string	addr	port	addr	port	string	set[count]	set[count]	string	count	count	count	set[count]
+#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	version	data_stream_id	history	frame_size_min	frame_size_max	frame_size_tot	data_frame_count	data_rate
+#types	time	string	addr	port	addr	port	string	set[count]	set[count]	string	count	count	count	count	set[count]
 #close XXXX-XX-XX-XX-XX-XX
-XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	36835	192.168.0.241	4712	tcp	1	241	2Dd	18	134	252	50
+XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	36835	192.168.0.241	4712	tcp	1	241	2Dd	18	134	13796	252	50

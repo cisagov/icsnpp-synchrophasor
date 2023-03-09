@@ -6,7 +6,7 @@
 #unset_field	-
 #path	synchrophasor_cfg
 #open XXXX-XX-XX-XX-XX-XX
-#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	frame_type	cont_idx	pmu_count_expected	pmu_count_actual	data_rate	station_names	phasor_names	analog_names	digital_names
-#types	time	string	addr	port	addr	port	string	string	count	count	count	count	vector[string]	vector[string]	vector[string]	vector[string]
+#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	frame_type	frame_size	cont_idx	pmu_count_expected	pmu_count_actual	data_rate	station_names	phasor_names	analog_names	digital_names
+#types	time	string	addr	port	addr	port	string	string	count	count	count	count	count	vector[string]	vector[string]	vector[string]	vector[string]
 #close XXXX-XX-XX-XX-XX-XX
-XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.10	4712	192.168.0.60	4713	udp	CFG2	0	1	1	50	PMU1	VA,VB,VC	(empty)	Dig Channel 1,Dig Channel 2,Dig Channel 3,Dig Channel 4,Dig Channel 5,Dig Channel 6,Dig Channel 7,Dig Channel 8,Dig Channel 9,Dig Channel 10,Dig Channel 11,Dig Channel 12,Dig Channel 13,Dig Channel 14,Dig Channel 15,Dig Channel 16
+XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.10	4712	192.168.0.60	4713	udp	CFG2	374	0	1	1	50	PMU1	VA,VB,VC	(empty)	Dig Channel 1,Dig Channel 2,Dig Channel 3,Dig Channel 4,Dig Channel 5,Dig Channel 6,Dig Channel 7,Dig Channel 8,Dig Channel 9,Dig Channel 10,Dig Channel 11,Dig Channel 12,Dig Channel 13,Dig Channel 14,Dig Channel 15,Dig Channel 16

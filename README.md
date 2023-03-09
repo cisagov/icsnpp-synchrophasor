@@ -52,6 +52,7 @@ This log captures and summarizes, by connection, Synchrophasor frames transmitte
 | history           | string         | Command history (see below)                               |
 | frame_size_min    | count          | Smallest frame size observed, in bytes                    |
 | frame_size_max    | count          | Largest frame size observed, in bytes                     |
+| frame_size_tot    | count          | Sum of frame sizes observed, in bytes                     |
 | data_frame_count  | count          | Count of data frames observed                             |
 | data_rate         | set<count>     | Data rate values(s) observed                              |
 

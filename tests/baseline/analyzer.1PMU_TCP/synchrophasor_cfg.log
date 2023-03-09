@@ -6,7 +6,7 @@
 #unset_field	-
 #path	synchrophasor_cfg
 #open XXXX-XX-XX-XX-XX-XX
-#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	frame_type	cont_idx	pmu_count_expected	pmu_count_actual	data_rate	station_names	phasor_names	analog_names	digital_names
-#types	time	string	addr	port	addr	port	string	string	count	count	count	count	vector[string]	vector[string]	vector[string]	vector[string]
+#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	frame_type	frame_size	cont_idx	pmu_count_expected	pmu_count_actual	data_rate	station_names	phasor_names	analog_names	digital_names
+#types	time	string	addr	port	addr	port	string	string	count	count	count	count	count	vector[string]	vector[string]	vector[string]	vector[string]
 #close XXXX-XX-XX-XX-XX-XX
-XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	36835	192.168.0.241	4712	tcp	CFG2	0	1	1	50	Blue PMU	V1LPM,VALPM,VBLPM,VCLPM	(empty)	(empty)
+XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	36835	192.168.0.241	4712	tcp	CFG2	134	0	1	1	50	Blue PMU	V1LPM,VALPM,VBLPM,VCLPM	(empty)	(empty)

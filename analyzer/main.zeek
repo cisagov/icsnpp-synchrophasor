@@ -35,6 +35,7 @@ export {
         history : string &log &optional;
         frame_size_min : count &log &optional;
         frame_size_max : count &log &optional;
+        frame_size_tot : count &log &optional;
         data_frame_count : count &log &optional;
         data_rate : set[count] &log &optional;
     };
@@ -219,6 +220,7 @@ hook set_session_cmd(c: connection) {
             $history="",
             $frame_size_min=0,
             $frame_size_max=0,
+            $frame_size_tot=0,
             $data_frame_count=0,
             $data_rate=set());
 
@@ -247,6 +249,7 @@ hook set_session_hdr(c: connection) {
             $history="",
             $frame_size_min=0,
             $frame_size_max=0,
+            $frame_size_tot=0,
             $data_frame_count=0,
             $data_rate=set());
 
@@ -274,6 +277,7 @@ hook set_session_cfg(c: connection) {
             $history="",
             $frame_size_min=0,
             $frame_size_max=0,
+            $frame_size_tot=0,
             $data_frame_count=0,
             $data_rate=set());
 
@@ -308,6 +312,7 @@ hook set_session_data(c: connection) {
             $history="",
             $frame_size_min=0,
             $frame_size_max=0,
+            $frame_size_tot=0,
             $data_frame_count=0,
             $data_rate=set());
 
@@ -423,6 +428,7 @@ event SYNCHROPHASOR::CommandFrame(
     add info$data_stream_id[dataStreamId];
 
     if (frameSize > 0) {
+        info$frame_size_tot += frameSize;
         if ((frameSize < info$frame_size_min) || (info$frame_size_min == 0))
             info$frame_size_min = frameSize;
         if (frameSize > info$frame_size_max)
@@ -469,6 +475,7 @@ event SYNCHROPHASOR::ConfigFrame(
     add info$data_rate[dataRate];
 
     if (frameSize > 0) {
+        info$frame_size_tot += frameSize;
         if ((frameSize < info$frame_size_min) || (info$frame_size_min == 0))
             info$frame_size_min = frameSize;
         if (frameSize > info$frame_size_max)
@@ -517,6 +524,7 @@ event SYNCHROPHASOR::DataFrame(
     add info$data_stream_id[dataStreamId];
 
     if (frameSize > 0) {
+        info$frame_size_tot += frameSize;
         if ((frameSize < info$frame_size_min) || (info$frame_size_min == 0))
             info$frame_size_min = frameSize;
         if (frameSize > info$frame_size_max)
@@ -554,6 +562,7 @@ event SYNCHROPHASOR::HeaderFrame(
     add info$data_stream_id[dataStreamId];
 
     if (frameSize > 0) {
+        info$frame_size_tot += frameSize;
         if ((frameSize < info$frame_size_min) || (info$frame_size_min == 0))
             info$frame_size_min = frameSize;
         if (frameSize > info$frame_size_max)
