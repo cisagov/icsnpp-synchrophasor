@@ -81,13 +81,13 @@ public type FrameHeader = unit(cfgMap : ConfigFrameMap&) {
 };
 
 # C37.118.2-2011, 6.6 Command frame, Table 14 ##########################################################################
-public type CommandFrame = unit(header : FrameHeader, cfgMap : ConfigFrameMap&) {
+public type CommandFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
     cmd : uint16;
     extframe : uint16[] &eod;
 };
 
 # C37.118.2-2011, 6.5 Header frame, Table 13 ###########################################################################
-public type HeaderFrame = unit(header : FrameHeader, cfgMap : ConfigFrameMap&) {
+public type HeaderFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
     var data : string = "";
     : bytes &eod {
         self.data = $$.decode(hilti::Charset::ASCII);
@@ -175,7 +175,7 @@ public type NominalLineFreq = unit() {
 
 # C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
 # C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
-public type ConfigFrame = unit(header : FrameHeader, inout cfgMap : ConfigFrameMap&) {
+public type ConfigFrame = unit(parent : Frame, inout cfgMap : ConfigFrameMap&) {
     var initialized : bool = False;
     var cfgNum : bool = False;
     var timeBase : uint32 = 1000000;
@@ -186,7 +186,7 @@ public type ConfigFrame = unit(header : FrameHeader, inout cfgMap : ConfigFrameM
     var allAnalogNames : vector<string>;
     var allDigitalNames : vector<string>;
 
-    : uint16 if (header.sync.frameType == FrameTypeCode::CONFIG_3_FRAME) {
+    : uint16 if (parent.header.sync.frameType == FrameTypeCode::CONFIG_3_FRAME) {
         self.contIdx = $$;
     }
 
@@ -200,7 +200,7 @@ public type ConfigFrame = unit(header : FrameHeader, inout cfgMap : ConfigFrameM
     }
 
     numPMUExpected : uint16;
-    pmuCfgs : PMUConfig(header, cfgMap, self)[self.numPMUExpected];
+    pmuCfgs : PMUConfig(parent.header, cfgMap, self)[self.numPMUExpected];
     dataRate : int16;
 
     : bytes &eod; # any remaining unparsed data
@@ -231,7 +231,7 @@ public type ConfigFrame = unit(header : FrameHeader, inout cfgMap : ConfigFrameM
             }
         }
         self.initialized = (self.numPMUActual == self.numPMUExpected);
-        cfgMap[header.dataStreamId] = self;
+        cfgMap[parent.header.dataStreamId] = self;
     }
 };
 
@@ -335,14 +335,14 @@ type NameField = unit(frameType : FrameTypeCode) {
 } &convert=self.trimmedName;
 
 # C37.118.2-2011, 6.3 Data frame, Table 5 and Table 6 ##################################################################
-public type DataFrame = unit(header : FrameHeader, cfgMap : ConfigFrameMap&) {
+public type DataFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
     var initialized : bool = False;  # set to True on %done
     var numPMUExpected : uint16 = 0;
     var numPMUActual : uint16 = 0;
     var cfgFound : bool = False;
     var cfgFrame : ConfigFrame;
 
-    data: PMUData(header, cfgMap, self)[] &eod;
+    data: PMUData(parent.header, cfgMap, self)[] &eod;
 
     on %done {
         self.initialized = ((self.cfgFound == True) && (self.numPMUExpected == self.numPMUActual));
@@ -462,7 +462,7 @@ public type AnalogData = unit(pmuCfg : PMUConfig) {
 };
 
 # Fallback unit for incorrectly formatted frames #######################################################################
-type NotImplemented = unit(header : FrameHeader, cfgMap : ConfigFrameMap&) {
+type NotImplemented = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
     : bytes &eod; # any remaining unparsed data
 };
 
@@ -475,13 +475,13 @@ public type Frame = unit(inout cfgMap : ConfigFrameMap&) {
     chk : uint16;
 
     switch (self.header.sync.frameType) {
-        FrameTypeCode::DATA_FRAME     -> DATA_FRAME       : DataFrame(self.header, cfgMap);
-        FrameTypeCode::HEADER_FRAME   -> HEADER_FRAME     : HeaderFrame(self.header, cfgMap);
-        FrameTypeCode::COMMAND_FRAME  -> COMMAND_FRAME    : CommandFrame(self.header, cfgMap);
+        FrameTypeCode::DATA_FRAME     -> DATA_FRAME       : DataFrame(self, cfgMap);
+        FrameTypeCode::HEADER_FRAME   -> HEADER_FRAME     : HeaderFrame(self, cfgMap);
+        FrameTypeCode::COMMAND_FRAME  -> COMMAND_FRAME    : CommandFrame(self, cfgMap);
         FrameTypeCode::CONFIG_1_FRAME,
         FrameTypeCode::CONFIG_2_FRAME,
-        FrameTypeCode::CONFIG_3_FRAME -> CONFIG_FRAME     : ConfigFrame(self.header, cfgMap);
-        *                             ->                  : NotImplemented(self.header, cfgMap);
+        FrameTypeCode::CONFIG_3_FRAME -> CONFIG_FRAME     : ConfigFrame(self, cfgMap);
+        *                             ->                  : NotImplemented(self, cfgMap);
     } &parse-from=self._payload if (self.header.sync.frameType);
 
     on %error {
