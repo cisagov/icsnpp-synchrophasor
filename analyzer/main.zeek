@@ -761,73 +761,79 @@ event SYNCHROPHASOR::DataFrame(
 
     info$data_frame_count += 1;
 
-    if ( log_data_frame ) {
-        info_data$pmu_count_expected = numPMUExpected;
-        info_data$pmu_count_actual = numPMUActual;
-        info_data$data_frame_id = unique_id("d");
+    if (log_data_frame) {
 
-        if ((log_data_detail) && (|pmuData| > 0)) {
-            for (pmuDataIdx in pmuData) {
-                local detail = Synchrophasor_Data_Detail($ts=info_data$ts,
-                                                         $uid=c$uid,
-                                                         $id=c$id,
-                                                         $est_rectangular_real_int=vector(),
-                                                         $est_rectangular_real_float=vector(),
-                                                         $est_rectangular_imaginary_int=vector(),
-                                                         $est_rectangular_imaginary_float=vector(),
-                                                         $est_polar_magnitude_int=vector(),
-                                                         $est_polar_magnitude_float=vector(),
-                                                         $est_polar_angle_int=vector(),
-                                                         $est_polar_angle_float=vector(),
-                                                         $analog_data_int=vector(),
-                                                         $analog_data_float=vector(),
-                                                         $digital=vector());
+        # if the data frame didn't get "initialized" that means that the analyzer
+        # never saw the config frame used to parse it. in other words, it's garbage.
+        # we can note the stuff from the frameheader (like we just did) but that's it.
 
-                detail$proto=c$synchrophasor_proto;
-                detail$data_frame_id=info_data$data_frame_id;
-                detail$frame_type = info_data$frame_type;
-                detail$header_time_stamp=timeStamp;
+        if (initialized) {
+            info_data$pmu_count_expected = numPMUExpected;
+            info_data$pmu_count_actual = numPMUActual;
+            info_data$data_frame_id = unique_id("d");
 
-                detail$pmu_idx = pmuData[pmuDataIdx]$pmuIdx;
-                detail$trigger_reason = pmuData[pmuDataIdx]$triggerReason;
-                detail$unlocked_time = pmuData[pmuDataIdx]$unlockedTime;
-                detail$pmu_time_quality = pmuData[pmuDataIdx]$pmuTimeQuality;
-                detail$data_modified = pmuData[pmuDataIdx]$dataModified;
-                detail$config_change = pmuData[pmuDataIdx]$configChange;
-                detail$pmu_trigger_pickup = pmuData[pmuDataIdx]$pmuTriggerPickup;
-                detail$data_sorting_type = pmuData[pmuDataIdx]$dataSortingType;
-                detail$pmu_sync_error = pmuData[pmuDataIdx]$pmuSyncError;
-                detail$data_error_indicator = pmuData[pmuDataIdx]$dataErrorIndicator;
-                detail$freq_dev_mhz_int = pmuData[pmuDataIdx]$freq$freqDevMhzInt;
-                detail$freq_dev_mhz_float = pmuData[pmuDataIdx]$freq$freqDevMhzFloat;
-                detail$rocof_int = pmuData[pmuDataIdx]$dfreq$rocofInt;
-                detail$rocof_float = pmuData[pmuDataIdx]$dfreq$rocofFloat;
-                detail$digital = pmuData[pmuDataIdx]$digital;
+            if ((log_data_detail) && (|pmuData| > 0)) {
+                for (pmuDataIdx in pmuData) {
+                    local detail = Synchrophasor_Data_Detail($ts=info_data$ts,
+                                                             $uid=c$uid,
+                                                             $id=c$id,
+                                                             $est_rectangular_real_int=vector(),
+                                                             $est_rectangular_real_float=vector(),
+                                                             $est_rectangular_imaginary_int=vector(),
+                                                             $est_rectangular_imaginary_float=vector(),
+                                                             $est_polar_magnitude_int=vector(),
+                                                             $est_polar_magnitude_float=vector(),
+                                                             $est_polar_angle_int=vector(),
+                                                             $est_polar_angle_float=vector(),
+                                                             $analog_data_int=vector(),
+                                                             $analog_data_float=vector(),
+                                                             $digital=vector());
 
-                if (|pmuData[pmuDataIdx]$phasors| > 0) {
-                    for (phasorIdx in pmuData[pmuDataIdx]$phasors) {
-                        detail$est_rectangular_real_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValInt;
-                        detail$est_rectangular_real_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValFloat;
-                        detail$est_rectangular_imaginary_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValInt;
-                        detail$est_rectangular_imaginary_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValFloat;
-                        detail$est_polar_magnitude_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValInt;
-                        detail$est_polar_magnitude_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValFloat;
-                        detail$est_polar_angle_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValInt;
-                        detail$est_polar_angle_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValFloat;
+                    detail$proto=c$synchrophasor_proto;
+                    detail$data_frame_id=info_data$data_frame_id;
+                    detail$frame_type = info_data$frame_type;
+                    detail$header_time_stamp=timeStamp;
+
+                    detail$pmu_idx = pmuData[pmuDataIdx]$pmuIdx;
+                    detail$trigger_reason = pmuData[pmuDataIdx]$triggerReason;
+                    detail$unlocked_time = pmuData[pmuDataIdx]$unlockedTime;
+                    detail$pmu_time_quality = pmuData[pmuDataIdx]$pmuTimeQuality;
+                    detail$data_modified = pmuData[pmuDataIdx]$dataModified;
+                    detail$config_change = pmuData[pmuDataIdx]$configChange;
+                    detail$pmu_trigger_pickup = pmuData[pmuDataIdx]$pmuTriggerPickup;
+                    detail$data_sorting_type = pmuData[pmuDataIdx]$dataSortingType;
+                    detail$pmu_sync_error = pmuData[pmuDataIdx]$pmuSyncError;
+                    detail$data_error_indicator = pmuData[pmuDataIdx]$dataErrorIndicator;
+                    detail$freq_dev_mhz_int = pmuData[pmuDataIdx]$freq$freqDevMhzInt;
+                    detail$freq_dev_mhz_float = pmuData[pmuDataIdx]$freq$freqDevMhzFloat;
+                    detail$rocof_int = pmuData[pmuDataIdx]$dfreq$rocofInt;
+                    detail$rocof_float = pmuData[pmuDataIdx]$dfreq$rocofFloat;
+                    detail$digital = pmuData[pmuDataIdx]$digital;
+
+                    if (|pmuData[pmuDataIdx]$phasors| > 0) {
+                        for (phasorIdx in pmuData[pmuDataIdx]$phasors) {
+                            detail$est_rectangular_real_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValInt;
+                            detail$est_rectangular_real_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValFloat;
+                            detail$est_rectangular_imaginary_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValInt;
+                            detail$est_rectangular_imaginary_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValFloat;
+                            detail$est_polar_magnitude_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValInt;
+                            detail$est_polar_magnitude_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValFloat;
+                            detail$est_polar_angle_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValInt;
+                            detail$est_polar_angle_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValFloat;
+                        }
                     }
-                }
 
-                if (|pmuData[pmuDataIdx]$analog| > 0) {
-                    for (analogIdx in pmuData[pmuDataIdx]$analog) {
-                        detail$analog_data_int += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataInt;
-                        detail$analog_data_float += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataFloat;
+                    if (|pmuData[pmuDataIdx]$analog| > 0) {
+                        for (analogIdx in pmuData[pmuDataIdx]$analog) {
+                            detail$analog_data_int += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataInt;
+                            detail$analog_data_float += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataFloat;
+                        }
                     }
-                }
 
-                Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_DATA_DETAIL, detail);
+                    Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_DATA_DETAIL, detail);
+                }
             }
         }
-
         emit_synchrophasor_data_log(c);
     }
 }
