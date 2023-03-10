@@ -1,0 +1,859 @@
+module SYNCHROPHASOR;
+
+# Copyright 2023 Battelle Energy Alliance, LLC
+
+##
+## ICSNPP - Synchrophasor
+##
+## C37.118.2-2011 IEEE Standard for Synchrophasor Data Transfer for Power Systems
+##
+## Seth Grover, Idaho National Lab, March 2023
+##
+
+import spicy;
+
+type ConfigFrameMap = map<uint16, ConfigFrame>;
+
+# C37.118.2-2011, 6.2 Message framework, Table 2, SYNC field definition ################################################
+type FrameTypeCode = enum {
+    DATA_FRAME              = 0,
+    HEADER_FRAME            = 1,
+    CONFIG_1_FRAME          = 2,
+    CONFIG_2_FRAME          = 3,
+    COMMAND_FRAME           = 4,
+    CONFIG_3_FRAME          = 5,
+};
+
+type SyncField = unit() {
+    var frameType: FrameTypeCode = FrameTypeCode::Undef;
+    var version: uint8 = 0;
+
+    # first byte must be 0xAA (170)
+    : uint8 &requires=($$ == 170);
+
+    # remainder of sync field holds protocol version and the frame type code
+    : bitfield(8) {
+        version : 0..3;
+        frameTypeBits : 4..6;
+        _ : 7;
+    } {
+        self.version = $$.version;
+        self.frameType = cast<FrameTypeCode>(cast<uint8>($$.frameTypeBits));
+    }
+};
+
+# C37.118.2-2011, 6.2.2 Time and message time quality ##################################################################
+type FracSec = unit(header : FrameHeader, cfgMap : ConfigFrameMap&) {
+    var fracSec  : real = 0.0;
+
+    data : bitfield(32) {
+        fracSecRaw : 0..23;
+        qualityIndicator : 24..27;
+        leapSecPending : 28;
+        leapSecOccurred : 29;
+        leapSecDirection : 30;
+        _ : 31;
+    };
+
+    # perform calculation of fractional seconds based on configuration's TIME_BASE (C37.118.2-2011, 6.2.2)
+    on %done {
+        if ((header.dataStreamId in cfgMap) &&
+            (cfgMap[header.dataStreamId].initialized == True)) {
+            self.fracSec = cast<real>(self.data.fracSecRaw) / cast<real>(cfgMap[header.dataStreamId].timeBase);
+        }
+    }
+};
+
+# C37.118.2-2011, 6.2.1 Overall message ################################################################################
+type FrameHeader = unit(cfgMap : ConfigFrameMap&) {
+    var timeStamp : time;
+    sync : SyncField;
+    frameSize : uint16;
+    dataStreamId : uint16;
+    : uint32 {
+        self.timeStamp = cast<time>($$);
+    }
+    fracSec : FracSec(self, cfgMap) {
+        self.timeStamp = self.timeStamp + cast<interval>(self.fracSec.fracSec);
+    }
+};
+
+# C37.118.2-2011, 6.6 Command frame, Table 14 ##########################################################################
+type CommandFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
+    cmd : uint16;
+    extframe : uint16[] &eod;
+};
+
+# C37.118.2-2011, 6.5 Header frame, Table 13 ###########################################################################
+type HeaderFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
+    var data : string = "";
+    : bytes &eod {
+        self.data = $$.decode(hilti::Charset::ASCII);
+    }
+};
+
+# C37.118.2-2011, 6.4 Word definitions unique to configuration frames 1 and 2, Table 9 #################################
+# - and/or -
+# C37.118.2-2011, 6.4 Word definitions unique to configuration frame 3, Table 11 #######################################
+
+type ConfigFormat = unit() {
+    format : bitfield(16) {
+        phasorShape : 0;  # 0 = phasor real and imaginary (rectangular), 1 = magnitude and angle (polar)
+        phasorFormat : 1; # 0 = phasors 16-bit integer, 1 = floating point
+        analogFormat : 2; # 0 = analogs 16-bit integer, 1 = floating point
+        freqFormat : 3;   # 0 = FREQ/DFREQ 16-bit integer, 1 = floating point
+        _ : 4..15;        # unused
+    };
+} &convert=self.format;
+
+type PhasorConversionFactor = unit(frameType : FrameTypeCode) {
+
+    # CFG-1 and CFG-2
+    format : bitfield(32) {
+        phunit : 0..7;
+        phvalue : 8..31;
+    } &optional if (frameType != FrameTypeCode::CONFIG_3_FRAME);
+
+    # CFG-3
+    flags : bitfield(16) {
+        _ : 0;
+        upsampledInterpolation : 1;
+        upsampledExtrapolation : 2;
+        downsampledReselection : 3;
+        downsampledFIRFilter : 4;
+        downsampledNoFIRFilter : 5;
+        filteredWithoutChangingSampling : 6;
+        calibrationMagAdj : 7;
+        calibrationPhasAdj : 8;
+        rotationPhaseAdj : 9;
+        pseudoPhasorVal : 10;
+        _ : 11..14;
+        modAppl : 15;
+    } &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    typeInd : bitfield(8) {
+        # Phasor component, coded as follows
+        # 111: Reserved
+        # 110: Phase C
+        # 101: Phase B
+        # 100: Phase A
+        # 011: Reserved
+        # 010: Negative sequence
+        # 001: Positive sequence
+        # 000: Zero sequence
+        phasorComponent : 0..2;
+        # 0―voltage; 1―current
+        phasorType : 3;
+        _ : 4..7;
+    } &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    userDef : uint8 &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    scaleFactor : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    angleAdj : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+
+};
+
+type AnalogConversionFactor = unit(frameType : FrameTypeCode) {
+    # CFG-1 and CFG -2
+    var analogFlags : uint8 = 0;
+    var userDefinedScaling : int32 = 0;
+
+    : bitfield(32) {
+        analogFlags : 0..7;
+        userDefinedScaling : 8..31;
+    } if (frameType != FrameTypeCode::CONFIG_3_FRAME) {
+        self.analogFlags = cast<uint8>($$.analogFlags);
+        self.userDefinedScaling = cast<int32>($$.userDefinedScaling);
+    }
+
+    # CFG-3
+    magScale : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    offset : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+};
+
+type DigitalStatusMaskWords = unit() {
+    normalStatusMask : uint16;
+    validInputsMask : uint16;
+};
+
+type NominalLineFreq = unit() {
+    code : bitfield(16) {
+        fundamentalFreq : 0;
+        _ : 1..15;
+    };
+} &convert=self.code;
+
+# C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
+# C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
+
+type ConfigFrame = unit(parent : Frame, inout cfgMap : ConfigFrameMap&) {
+    var initialized : bool = False;
+    var cfgNum : bool = False;
+    var timeBase : uint32 = 1000000;
+    var contIdx : uint16 = 0;
+    var numPMUActual : uint16 = 0;
+
+    : uint16 if (parent.header.sync.frameType == FrameTypeCode::CONFIG_3_FRAME) {
+        self.contIdx = $$;
+    }
+
+    : bitfield(32) {
+        subdivision : 0..23;
+        _ : 24..31;
+    } {
+        if ($$.subdivision > 0) {
+            self.timeBase = $$.subdivision;
+        }
+    }
+
+    numPMUExpected : uint16;
+    pmuCfgs : PMUConfig(parent.header, cfgMap, self)[self.numPMUExpected];
+    dataRate : int16;
+
+    : bytes &eod; # any remaining unparsed data
+
+    on %done {
+        self.initialized = (self.numPMUActual == self.numPMUExpected);
+        cfgMap[parent.header.dataStreamId] = self;
+    }
+};
+
+# These record types (tuples) are used to convert from the unit definitions to records that can be passed to Zeek. #####
+# See the corresponding unit to know what everything actually means ####################################################
+# These records are exported to Zeek via zeek-plugin's "exporting types" feature #######################################
+# see https://docs.zeek.org/projects/spicy/en/latest/zeek.html#exporting-types #########################################
+type PhasorConversionFactorRec = tuple<
+    phunit : uint32,
+    phvalue : uint32,
+    upsampledInterpolation : bool,
+    upsampledExtrapolation : bool,
+    downsampledReselection : bool,
+    downsampledFIRFilter : bool,
+    downsampledNoFIRFilter : bool,
+    filteredWithoutChangingSampling : bool,
+    calibrationMagAdj : bool,
+    calibrationPhasAdj : bool,
+    rotationPhaseAdj : bool,
+    pseudoPhasorVal : bool,
+    modAppl : bool,
+    phasorComponent : uint8,
+    phasorType : bool,
+    userDef : uint8,
+    scaleFactor : real,
+    angleAdj : real>;
+
+type AnalogConversionFactorRec = tuple<
+    analogFlags : uint8,
+    userDefinedScaling : int32,
+    magScale : real,
+    offset : real>;
+
+type DigitalStatusMaskWordsRec = tuple<
+    normalStatusMask : uint16,
+    validInputsMask : uint16>;
+
+type PMUConfigRec = tuple<
+    initialized : bool,
+    pmuIdx : uint16,
+    svcClass : string,
+    stationName : string,
+    dataSourceId : uint16,
+    globalPMUID : bytes,
+    phasorShape : bool,
+    phasorFormat : bool,
+    analogFormat : bool,
+    freqFormat : bool,
+    phnmr : uint16,
+    annmr : uint16,
+    dgnmr : uint16,
+    phnam : vector<string>,
+    annam : vector<string>,
+    dgnam : vector<string>,
+    phunit : vector<PhasorConversionFactorRec>,
+    anunit : vector<AnalogConversionFactorRec>,
+    digunit : vector<DigitalStatusMaskWordsRec>,
+    pmuLat : real,
+    pmuLon : real,
+    pmuElev : real,
+    window : int32,
+    groupDelay : int32,
+    fnom : uint16,
+    cfgcnt : uint16>;
+
+function PhasorConversionFactorToRec(u : PhasorConversionFactor) : PhasorConversionFactorRec {
+    local result : PhasorConversionFactorRec;
+
+    if (u?.format) {
+        result.phunit = u.format.phunit;
+        result.phvalue = u.format.phvalue;
+    }
+
+    if (u?.flags) {
+        result.upsampledInterpolation = (u.flags.upsampledInterpolation != 0);
+        result.upsampledExtrapolation = (u.flags.upsampledExtrapolation != 0);
+        result.downsampledReselection = (u.flags.downsampledReselection != 0);
+        result.downsampledFIRFilter = (u.flags.downsampledFIRFilter != 0);
+        result.downsampledNoFIRFilter = (u.flags.downsampledNoFIRFilter != 0);
+        result.filteredWithoutChangingSampling = (u.flags.filteredWithoutChangingSampling != 0);
+        result.calibrationMagAdj = (u.flags.calibrationMagAdj != 0);
+        result.calibrationPhasAdj = (u.flags.calibrationPhasAdj != 0);
+        result.rotationPhaseAdj = (u.flags.rotationPhaseAdj != 0);
+        result.pseudoPhasorVal = (u.flags.pseudoPhasorVal != 0);
+        result.modAppl = (u.flags.modAppl != 0);
+    }
+
+    if (u?.typeInd) {
+        result.phasorComponent = u.typeInd.phasorComponent;
+        result.phasorType = (u.typeInd.phasorType != 0);
+    }
+
+    if (u?.userDef)
+        result.userDef = u.userDef;
+
+    if (u?.scaleFactor)
+        result.scaleFactor = u.scaleFactor;
+
+    if (u?.angleAdj)
+        result.angleAdj = u.angleAdj;
+
+    return result;
+}
+
+function AnalogConversionFactorToRec(u : AnalogConversionFactor) : AnalogConversionFactorRec {
+    local result : AnalogConversionFactorRec;
+
+    if (u?.analogFlags)
+        result.analogFlags = u.analogFlags;
+
+    if (u?.userDefinedScaling)
+        result.userDefinedScaling = u.userDefinedScaling;
+
+    if (u?.magScale)
+        result.magScale = u.magScale;
+
+    if (u?.offset)
+        result.offset = u.offset;
+
+    return result;
+}
+
+function DigitalStatusMaskWordsToRec(u : DigitalStatusMaskWords) : DigitalStatusMaskWordsRec {
+    local result : DigitalStatusMaskWordsRec;
+
+    if (u?.normalStatusMask)
+        result.normalStatusMask = u.normalStatusMask;
+
+    if (u?.validInputsMask)
+        result.validInputsMask = u.validInputsMask;
+
+    return result;
+}
+
+function PMUConfigToRec(pmu : PMUConfig) : PMUConfigRec {
+    local pmuRec : PMUConfigRec;
+
+    pmuRec.initialized = ((pmu?.initialized) && (pmu.initialized));
+
+    if (pmu?.svcClass)
+        pmuRec.svcClass = pmu.svcClass;
+
+    if (pmu?.pmuIdx)
+        pmuRec.pmuIdx = pmu.pmuIdx;
+
+    if (pmu?.stationName)
+        pmuRec.stationName = pmu.stationName;
+
+    if (pmu?.dataSourceId)
+        pmuRec.dataSourceId = pmu.dataSourceId;
+
+    if (pmu?.globalPMUID)
+        pmuRec.globalPMUID = pmu.globalPMUID;
+
+    if (pmu?.format) {
+        pmuRec.phasorShape = (pmu.format.phasorShape != 0);
+        pmuRec.phasorFormat = (pmu.format.phasorFormat != 0);
+        pmuRec.analogFormat = (pmu.format.analogFormat != 0);
+        pmuRec.freqFormat = (pmu.format.freqFormat != 0);
+    }
+
+    if (pmu?.phnmr)
+        pmuRec.phnmr = pmu.phnmr;
+
+    if (pmu?.annmr)
+        pmuRec.annmr = pmu.annmr;
+
+    if (pmu?.dgnmr)
+        pmuRec.dgnmr = pmu.dgnmr;
+
+    if (pmu?.phnam)
+        pmuRec.phnam = pmu.phnam;
+
+    if (pmu?.annam)
+        pmuRec.annam = pmu.annam;
+
+    if (pmu?.dgnam)
+        pmuRec.dgnam = pmu.dgnam;
+
+    if ((pmu?.phunit) && (|pmu.phunit| > 0))
+        for (phu in pmu.phunit)
+            pmuRec.phunit.push_back(PhasorConversionFactorToRec(phu));
+
+    if ((pmu?.anunit) && (|pmu.anunit| > 0))
+        for (anu in pmu.anunit)
+            pmuRec.anunit.push_back(AnalogConversionFactorToRec(anu));
+
+    if ((pmu?.digunit) && (|pmu.digunit| > 0))
+        for (digu in pmu.digunit)
+            pmuRec.digunit.push_back(DigitalStatusMaskWordsToRec(digu));
+
+    if (pmu?.pmuLat)
+        pmuRec.pmuLat = pmu.pmuLat;
+
+    if (pmu?.pmuLon)
+        pmuRec.pmuLon = pmu.pmuLon;
+
+    if (pmu?.pmuElev)
+        pmuRec.pmuElev = pmu.pmuElev;
+
+    if (pmu?.window)
+        pmuRec.window = pmu.window;
+
+    if (pmu?.groupDelay)
+        pmuRec.groupDelay = pmu.groupDelay;
+
+    if (pmu?.fnom)
+        pmuRec.fnom = pmu.fnom;
+
+    if (pmu?.cfgcnt)
+        pmuRec.cfgcnt = pmu.cfgcnt;
+
+    return pmuRec;
+}
+
+public function ConfigFrameToPMUCfgRecs(cfgFrm : ConfigFrame) : vector<PMUConfigRec> {
+    local pmuCfgRecs : vector<PMUConfigRec>;
+
+    if ((cfgFrm?.pmuCfgs) && (|cfgFrm.pmuCfgs| > 0))
+        for (pmu in cfgFrm.pmuCfgs)
+            pmuCfgRecs.push_back(PMUConfigToRec(pmu));
+
+    return pmuCfgRecs;
+}
+
+# CFG-1 and CFG-2: Table 8  - fields 8-19
+# CFG-3:           Table 10 - fields 9-27
+type PMUConfig = unit(header : FrameHeader, inout cfgMap : ConfigFrameMap&, inout cfgFrm : ConfigFrame) {
+    var frameType: FrameTypeCode = FrameTypeCode::Undef;     # stored from header.sync.frameType
+    var initialized : bool = False;                          # set to True on %done
+    var pmuIdx : uint16 = 0;                                 # position in parent's (cfgFrm's) pmuCfgs
+    var svcClass : string = "";                              # only for CFG-3
+    var dgnmrMult : uint32;                                  # used for the byte length of the dgnam field
+
+    stationName : NameField(header.sync.frameType);
+
+    dataSourceId : uint16 {
+        self.frameType = header.sync.frameType;
+    }
+
+    globalPMUID : bytes &size=16 &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+
+    format : ConfigFormat;
+
+    # phasor/analog/digital counts
+    phnmr : uint16;
+    annmr : uint16;
+    dgnmr : uint16 {
+        # used for the byte length of the dgnam field
+        if (self.frameType == FrameTypeCode::CONFIG_3_FRAME) {
+            self.dgnmrMult = 1;
+        } else {
+            self.dgnmrMult = 16;
+        }
+    }
+
+    # phasor/analog/digital names
+    phnam : NameField(self.frameType)[self.phnmr];
+    annam : NameField(self.frameType)[self.annmr];
+    dgnam : NameField(self.frameType)[self.dgnmrMult * self.dgnmr];
+
+    # conversion factor for phasor channels
+    phunit : PhasorConversionFactor(self.frameType)[self.phnmr];
+
+    # conversion factor for analog channels
+    anunit : AnalogConversionFactor(self.frameType)[self.annmr];
+
+    # mask words for digital status words
+    digunit : DigitalStatusMaskWords[self.dgnmr];
+
+    # WGS84 datum for PMU location (CFG-3)
+    pmuLat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    pmuLon : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    pmuElev : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+
+    # service class, measurement window and measurement group delay (CFG-3)
+    : bytes &size = 1 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME) {
+        self.svcClass = $$.decode(hilti::Charset::ASCII);
+    }
+    window : int32 &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    groupDelay : int32 &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+
+    # nominal line frequency code and flags
+    fnom : uint16;
+
+    # configuration change count
+    cfgcnt : uint16;
+
+    on %done {
+        self.pmuIdx = cfgFrm.numPMUActual;
+        cfgFrm.numPMUActual += 1;
+        self.initialized = True;
+    }
+};
+
+# 16-bytes interpreted as an ASCII-encoded string (for CFG-1 and CFG-2) #################################################
+#  - OR -
+# C37.118.2-2011, 6.4 Name field description, table 12 (for CFG-3) ######################################################
+type NameField = unit(frameType : FrameTypeCode) {
+    var trimmedName : string = "";
+
+    : bytes &size = 16 if (frameType != FrameTypeCode::CONFIG_3_FRAME) {
+        self.trimmedName = $$.decode(hilti::Charset::ASCII);
+        # TODO: spicy bug here (error ...: bound object has expired)
+        # This has been fixed, once spicy 1.5 has been out for a while we
+        # can go back to trimming on the spicy side instead of the Zeek side.
+        # - https://github.com/zeek/spicy/issues/1390
+        # - https://github.com/zeek/spicy/pull/1391
+        # self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::ASCII);
+    }
+
+    nameLen : uint8 &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    : bytes &size = self.nameLen if (frameType == FrameTypeCode::CONFIG_3_FRAME) {
+        self.trimmedName = $$.decode(hilti::Charset::UTF8);
+    }
+
+} &convert=self.trimmedName;
+
+# C37.118.2-2011, 6.3 Data frame, Table 5 and Table 6 ##################################################################
+type DataFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
+    var initialized : bool = False;  # set to True on %done
+    var numPMUExpected : uint16 = 0;
+    var numPMUActual : uint16 = 0;
+    var cfgFound : bool = False;
+    var cfgFrame : ConfigFrame;
+
+    data: PMUData(parent.header, cfgMap, self)[] &eod;
+
+    on %done {
+        self.initialized = ((self.cfgFound == True) && (self.numPMUExpected == self.numPMUActual));
+    }
+};
+
+type PMUData = unit(header : FrameHeader, cfgMap : ConfigFrameMap&, inout dataFrm : DataFrame) {
+    var initialized : bool = False;  # set to True on %done
+    var pmuFound : bool = False;
+    var pmuIdx : uint16 = 0;         # position in parent's (dataFrm's) data
+    var pmuCfg : PMUConfig;
+
+    stat : bitfield(16) {
+        triggerReason : 0..3;
+        unlockedTime : 4..5;
+        pmuTimeQuality : 6..8;
+        dataModified : 9;
+        configChange : 10;
+        pmuTriggerPickup : 11;
+        dataSortingType : 12;
+        pmuSyncError : 13;
+        dataErrorIndicator : 14..15;
+    } {
+        self.pmuIdx = dataFrm.numPMUActual;
+        dataFrm.numPMUActual += 1;
+
+        if ((dataFrm.cfgFound == False) &&
+            (header.dataStreamId in cfgMap) &&
+            (cfgMap[header.dataStreamId].initialized == True)) {
+            dataFrm.cfgFrame = cfgMap[header.dataStreamId];
+            dataFrm.numPMUExpected = dataFrm.cfgFrame.numPMUExpected;
+            dataFrm.cfgFound = True;
+        }
+        if ((dataFrm.cfgFound == True) &&
+            (self.pmuIdx < |dataFrm.cfgFrame.pmuCfgs|) &&
+            (dataFrm.cfgFrame.pmuCfgs[self.pmuIdx].initialized == True)) {
+            self.pmuCfg = dataFrm.cfgFrame.pmuCfgs[self.pmuIdx];
+            self.pmuFound = True;
+        }
+    }
+
+    phasors : PhasorEstimate(self.pmuCfg)[self.pmuCfg.phnmr]   if ((self.pmuFound == True) &&
+                                                                   (self.pmuCfg.phnmr > 0));
+    freq    : FrequencyDeviation(self.pmuCfg)                  if (self.pmuFound == True);
+    dfreq   : ROCOF(self.pmuCfg)                               if (self.pmuFound == True);
+    analog  : AnalogData(self.pmuCfg)[self.pmuCfg.annmr]       if ((self.pmuFound == True) &&
+                                                                   (self.pmuCfg.annmr > 0));
+    digital : uint16[self.pmuCfg.dgnmr]                        if ((self.pmuFound == True) &&
+                                                                   (self.pmuCfg.dgnmr > 0));
+    on %done {
+        self.initialized = (self.pmuFound == True);
+    }
+};
+
+# These record types (tuples) are used to convert from the unit definitions to records that can be passed to Zeek. #####
+# See the corresponding unit to know what everything actually means ####################################################
+# These records are exported to Zeek via zeek-plugin's "exporting types" feature #######################################
+# see https://docs.zeek.org/projects/spicy/en/latest/zeek.html#exporting-types #########################################
+type PhasorEstimateRec = tuple<
+    rectangularRealValInt : int16,
+    rectangularRealValFloat : real,
+    rectangularImaginaryValInt : int16,
+    rectangularImaginaryValFloat : real,
+    polarMagnitudeValInt : uint16,
+    polarMagnitudeValFloat : real,
+    polarAngleValInt : int16,
+    polarAngleValFloat : real
+>;
+
+type FrequencyDeviationRec = tuple<
+    freqDevMhzInt : int16,
+    freqDevMhzFloat : real
+>;
+
+type ROCOFRec = tuple<
+    rocofInt : int16,
+    rocofFloat : real
+>;
+
+type AnalogDataRec = tuple<
+    analogDataInt : int16,
+    analogDataFloat : real
+>;
+
+type PMUDataRec = tuple<
+    initialized : bool,
+    pmuFound : bool,
+    pmuIdx : uint16,
+    triggerReason : uint16,
+    unlockedTime : uint16,
+    pmuTimeQuality : uint16,
+    dataModified : bool,
+    configChange : bool,
+    pmuTriggerPickup : bool,
+    dataSortingType : bool,
+    pmuSyncError : bool,
+    dataErrorIndicator : uint16,
+    phasors : vector<PhasorEstimateRec>,
+    freq : FrequencyDeviationRec,
+    dfreq : ROCOFRec,
+    analog : vector<AnalogDataRec>,
+    digital : vector<uint16>>;
+
+function PhasorEstimateToRec(val : PhasorEstimate) : PhasorEstimateRec {
+    local result : PhasorEstimateRec;
+
+    if (val?.rectangular) {
+        if (val.rectangular?.realValInt)
+            result.rectangularRealValInt = val.rectangular.realValInt;
+        if (val.rectangular?.realValFloat)
+            result.rectangularRealValFloat = val.rectangular.realValFloat;
+        if (val.rectangular?.imaginaryValInt)
+            result.rectangularImaginaryValInt = val.rectangular.imaginaryValInt;
+        if (val.rectangular?.imaginaryValFloat)
+            result.rectangularImaginaryValFloat = val.rectangular.imaginaryValFloat;
+    }
+
+    if (val?.polar) {
+        if (val.polar?.magnitudeValInt)
+            result.polarMagnitudeValInt = val.polar.magnitudeValInt;
+        if (val.polar?.magnitudeValFloat)
+            result.polarMagnitudeValFloat = val.polar.magnitudeValFloat;
+        if (val.polar?.angleValInt)
+            result.polarAngleValInt = val.polar.angleValInt;
+        if (val.polar?.angleValFloat)
+            result.polarAngleValFloat = val.polar.angleValFloat;
+    }
+
+    return result;
+}
+
+function FrequencyDeviationToRec(val : FrequencyDeviation) : FrequencyDeviationRec {
+    local result : FrequencyDeviationRec;
+
+    if (val?.freqDevMhzInt)
+        result.freqDevMhzInt = val.freqDevMhzInt;
+
+    if (val?.freqDevMhzFloat)
+        result.freqDevMhzFloat = val.freqDevMhzFloat;
+
+    return result;
+}
+
+function ROCOFToRec(val : ROCOF) : ROCOFRec {
+    local result : ROCOFRec;
+
+    if (val?.rocofInt)
+        result.rocofInt = val.rocofInt;
+
+    if (val?.rocofFloat)
+        result.rocofFloat = val.rocofFloat;
+
+    return result;
+}
+
+function AnalogDataToRec(val : AnalogData) : AnalogDataRec {
+    local result : AnalogDataRec;
+
+    if (val?.analogDataInt)
+        result.analogDataInt = val.analogDataInt;
+
+    if (val?.analogDataFloat)
+        result.analogDataFloat = val.analogDataFloat;
+
+    return result;
+}
+
+function PMUDataToRec(pmuDat : PMUData) : PMUDataRec {
+    local pmuDatRec : PMUDataRec;
+
+    pmuDatRec.initialized = ((pmuDat?.initialized) && (pmuDat.initialized));
+
+    if (pmuDat?.pmuFound)
+        pmuDatRec.pmuFound = pmuDat.pmuFound;
+
+    if (pmuDat?.pmuIdx)
+        pmuDatRec.pmuIdx = pmuDat.pmuIdx;
+
+    if (pmuDat?.stat) {
+        pmuDatRec.triggerReason = pmuDat.stat.triggerReason;
+        pmuDatRec.unlockedTime = pmuDat.stat.unlockedTime;
+        pmuDatRec.pmuTimeQuality = pmuDat.stat.pmuTimeQuality;
+        pmuDatRec.dataModified = (pmuDat.stat.dataModified != 0);
+        pmuDatRec.configChange = (pmuDat.stat.configChange != 0);
+        pmuDatRec.pmuTriggerPickup = (pmuDat.stat.pmuTriggerPickup != 0);
+        pmuDatRec.dataSortingType = (pmuDat.stat.dataSortingType != 0);
+        pmuDatRec.pmuSyncError = (pmuDat.stat.pmuSyncError != 0);
+        pmuDatRec.dataErrorIndicator = pmuDat.stat.dataErrorIndicator;
+    }
+
+    if ((pmuDat?.phasors) && (|pmuDat.phasors| > 0))
+        for (phas in pmuDat.phasors)
+            pmuDatRec.phasors.push_back(PhasorEstimateToRec(phas));
+
+    if (pmuDat?.freq)
+        pmuDatRec.freq = FrequencyDeviationToRec(pmuDat.freq);
+
+    if (pmuDat?.dfreq)
+        pmuDatRec.dfreq = ROCOFToRec(pmuDat.dfreq);
+
+    if ((pmuDat?.analog) && (|pmuDat.analog| > 0))
+        for (ana in pmuDat.analog)
+            pmuDatRec.analog.push_back(AnalogDataToRec(ana));
+
+    if ((pmuDat?.digital) && (|pmuDat.digital| > 0))
+        for (digVal in pmuDat.digital)
+            pmuDatRec.digital.push_back(digVal);
+
+    return pmuDatRec;
+}
+
+public function DataFrameToPMUDataRecs(dataFrm : DataFrame) : vector<PMUDataRec> {
+    local pmuDataRecs : vector<PMUDataRec>;
+
+    if ((dataFrm?.data) && (|dataFrm.data| > 0))
+        for (pmuDat in dataFrm.data)
+            pmuDataRecs.push_back(PMUDataToRec(pmuDat));
+
+    return pmuDataRecs;
+}
+
+# Data type indicated by the FORMAT field in configuration 1, 2, and 3 frames
+# 16-bit integer values:
+# Rectangular format:
+# -real and imaginary, real value first
+# -16-bit signed integers, range –32 767 to +32 767
+# Polar format:
+# -magnitude and angle, magnitude first
+# -magnitude 16-bit unsigned integer range 0 to 65535
+# -angle 16-bit signed integer, in radians × 10 4 , range –31 416 to +31 416
+#
+# 32-bit values in IEEE floating-point format:
+# Rectangular format:
+# -real and imaginary, in engineering units, real value first
+# Polar format:
+# -magnitude and angle, magnitude first and in engineering units
+# -angle in radians, range –π to + π
+type PhasorEstimate = unit(pmuCfg : PMUConfig) {
+    rectangular : PhasorRectangular(pmuCfg) &optional if (pmuCfg.format.phasorShape == 0);
+    polar       : PhasorPolar(pmuCfg)       &optional if (pmuCfg.format.phasorShape == 1);
+};
+
+type PhasorRectangular = unit(pmuCfg : PMUConfig) {
+    realValInt          : int16                                                                        &optional if (pmuCfg.format.phasorFormat == 0);
+    realValFloat        : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.phasorFormat == 1);
+    imaginaryValInt     : int16                                                                        &optional if (pmuCfg.format.phasorFormat == 0);
+    imaginaryValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.phasorFormat == 1);
+};
+
+type PhasorPolar = unit(pmuCfg : PMUConfig) {
+    magnitudeValInt     : uint16                                                                       &optional if (pmuCfg.format.phasorFormat == 0);
+    magnitudeValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.phasorFormat == 1);
+    angleValInt         : int16                                                                        &optional if (pmuCfg.format.phasorFormat == 0);
+    angleValFloat       : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.phasorFormat == 1);
+};
+
+# Frequency deviation from nominal, in mHz
+# Range–nominal (50 Hz or 60 Hz) –32.767 to +32.767 Hz
+# 16-bit integer or 32-bit floating point
+# 16-bit integer: 16-bit signed integers, range –32 767 to +32 767
+# 32-bit floating point: actual frequency value in IEEE floating-point format.
+# Data type indicated by the FORMAT field in configuration 1, 2, and 3 frames
+type FrequencyDeviation = unit(pmuCfg : PMUConfig) {
+    freqDevMhzInt   : int16                                                                        &optional if (pmuCfg.format.freqFormat == 0);
+    freqDevMhzFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.freqFormat == 1);
+};
+
+# ROCOF, in hertz per second times 100
+# Range –327.67 to +327.67 Hz per second
+# Can be 16-bit integer or IEEE floating point, same as FREQ above. Data type indicated
+# by the FORMAT field in configuration 1, 2, and 3 frames
+type ROCOF = unit(pmuCfg : PMUConfig) {
+    rocofInt   : int16                                                                        &optional if (pmuCfg.format.freqFormat == 0);
+    rocofFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.freqFormat == 1);
+};
+
+# Analog word. 16-bit integer. It could be sampled data such as control signal or
+# transducer value. Values and ranges defined by user.
+# Can be 16-bit integer or IEEE floating point. Data type indicated by the FORMAT field
+# in configuration 1, 2, and 3 frames
+type AnalogData = unit(pmuCfg : PMUConfig) {
+    analogDataInt   : int16                                                                        &optional if (pmuCfg.format.analogFormat == 0);
+    analogDataFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.analogFormat == 1);
+};
+
+# Fallback unit for incorrectly formatted frames #######################################################################
+type NotImplemented = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
+    : bytes &eod; # any remaining unparsed data
+};
+
+# C37.118.2-2011, 6.2.1 Overall message ################################################################################
+public type Frame = unit(inout cfgMap : ConfigFrameMap&) {
+    var parseError : bool = False;
+
+    header : FrameHeader(cfgMap);
+    _payload : bytes &size=(self.header.frameSize - 16);
+    chk : uint16;
+
+    switch (self.header.sync.frameType) {
+        FrameTypeCode::DATA_FRAME     -> DATA_FRAME       : DataFrame(self, cfgMap);
+        FrameTypeCode::HEADER_FRAME   -> HEADER_FRAME     : HeaderFrame(self, cfgMap);
+        FrameTypeCode::COMMAND_FRAME  -> COMMAND_FRAME    : CommandFrame(self, cfgMap);
+        FrameTypeCode::CONFIG_1_FRAME,
+        FrameTypeCode::CONFIG_2_FRAME,
+        FrameTypeCode::CONFIG_3_FRAME -> CONFIG_FRAME     : ConfigFrame(self, cfgMap);
+        *                             ->                  : NotImplemented(self, cfgMap);
+    } &parse-from=self._payload if (self.header.sync.frameType);
+
+    on %error {
+      self.parseError = True;
+    }
+};
+
+public type Frames = unit() {
+    %context = ConfigFrameMap;
+    frames : Frame(self.context())[];
+};

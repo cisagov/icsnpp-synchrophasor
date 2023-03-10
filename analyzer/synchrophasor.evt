@@ -1,0 +1,79 @@
+import SYNCHROPHASOR;
+import Zeek_SYNCHROPHASOR;
+
+# Copyright 2023 Battelle Energy Alliance, LLC
+
+export SYNCHROPHASOR::FrameTypeCode;
+export SYNCHROPHASOR::AnalogConversionFactorRec;
+export SYNCHROPHASOR::AnalogDataRec;
+export SYNCHROPHASOR::DigitalStatusMaskWordsRec;
+export SYNCHROPHASOR::FrequencyDeviationRec;
+export SYNCHROPHASOR::PhasorConversionFactorRec;
+export SYNCHROPHASOR::PhasorEstimateRec;
+export SYNCHROPHASOR::PMUConfigRec;
+export SYNCHROPHASOR::PMUDataRec;
+export SYNCHROPHASOR::ROCOFRec;
+
+# C37.118.2-2011, E.2, Network communications using Internet protocol (IP)
+# "Default port numbers shall be 4712 for TCP and 4713 for UDP, but in all cases,
+#  the user shall be provided the means to set port numbers as desired."
+protocol analyzer spicy::SYNCHROPHASOR_TCP over TCP:
+    parse with SYNCHROPHASOR::Frames,
+    port 4712/tcp;
+protocol analyzer spicy::SYNCHROPHASOR_UDP over UDP:
+    parse with SYNCHROPHASOR::Frames,
+    port 4713/udp;
+
+on SYNCHROPHASOR::CommandFrame -> event SYNCHROPHASOR::CommandFrame(
+    $conn,
+    $is_orig,
+    parent.header.sync.frameType,
+    parent.header.timeStamp,
+    parent.header.frameSize,
+    parent.chk,
+    parent.header.sync.version,
+    parent.header.dataStreamId,
+    self.cmd,
+    self.extframe);
+
+on SYNCHROPHASOR::ConfigFrame -> event SYNCHROPHASOR::ConfigFrame(
+    $conn,
+    $is_orig,
+    parent.header.sync.frameType,
+    parent.header.timeStamp,
+    parent.header.frameSize,
+    parent.chk,
+    parent.header.sync.version,
+    parent.header.dataStreamId,
+    self.initialized,
+    self.timeBase,
+    self.contIdx,
+    self.numPMUExpected,
+    self.numPMUActual,
+    self.dataRate,
+    SYNCHROPHASOR::ConfigFrameToPMUCfgRecs(self));
+
+on SYNCHROPHASOR::DataFrame -> event SYNCHROPHASOR::DataFrame(
+    $conn,
+    $is_orig,
+    parent.header.sync.frameType,
+    parent.header.timeStamp,
+    parent.header.frameSize,
+    parent.chk,
+    parent.header.sync.version,
+    parent.header.dataStreamId,
+    self.initialized,
+    self.numPMUExpected,
+    self.numPMUActual,
+    SYNCHROPHASOR::DataFrameToPMUDataRecs(self));
+
+on SYNCHROPHASOR::HeaderFrame -> event SYNCHROPHASOR::HeaderFrame(
+    $conn,
+    $is_orig,
+    parent.header.sync.frameType,
+    parent.header.timeStamp,
+    parent.header.frameSize,
+    parent.chk,
+    parent.header.sync.version,
+    parent.header.dataStreamId,
+    self.data);

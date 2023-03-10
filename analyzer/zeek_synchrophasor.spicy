@@ -1,0 +1,14 @@
+# Copyright 2023 Battelle Energy Alliance, LLC
+
+module Zeek_SYNCHROPHASOR;
+
+import SYNCHROPHASOR;
+import zeek;
+
+on SYNCHROPHASOR::FrameHeader::%done {
+    zeek::confirm_protocol();
+}
+
+on SYNCHROPHASOR::Frame::%error {
+    zeek::reject_protocol("error while parsing SYNCHROPHASOR frame");
+}
