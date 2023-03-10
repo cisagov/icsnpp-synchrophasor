@@ -146,6 +146,7 @@ Most of the fields listed here are optional. Many may be unused during communica
 | uid                                            | string         | Unique ID for this connection                                                |
 | id                                             | conn_id        | Default Zeek connection info (IP addresses, ports)                           |
 | proto                                          | string         | Transport protocol                                                           |
+| frame_type                                     | string         | Frame type from synchrophasor frame synchronization word                     |
 | header_time_stamp                              | time           | Timestamp from frame header                                                  |
 | cfg_frame_id                                   | string         | Unique string to correlate with synchrophasor_cfg                            |
 | pmu_idx                                        | count          | 0-based index of PMU configuration within the CFG frame                      |
@@ -232,6 +233,7 @@ Most of the fields listed here are optional. Many may be unused during communica
 | uid                             | string         | Unique ID for this connection                                |
 | id                              | conn_id        | Default Zeek connection info (IP addresses, ports)           |
 | proto                           | string         | Transport protocol                                           |
+| frame_type                      | string         | Frame type from synchrophasor frame synchronization word     |
 | header_time_stamp               | time           | Timestamp from frame header                                  |
 | data_frame_id                   | string         | Unique string to correlate with synchrophasor_data_detail    |
 | pmu_idx                         | count          | 0-based index of PMU data within the data frame              |

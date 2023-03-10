@@ -106,6 +106,7 @@ export {
         id: conn_id &log;
 
         proto : string &log &optional;
+        frame_type : string &log &optional;
         header_time_stamp : time &log &optional;
         cfg_frame_id : string &log &optional;
 
@@ -185,6 +186,7 @@ export {
         id: conn_id &log;
 
         proto : string &log &optional;
+        frame_type : string &log &optional;
         header_time_stamp : time &log &optional;
         data_frame_id : string &log &optional;
 
@@ -635,6 +637,7 @@ event SYNCHROPHASOR::ConfigFrame(
                                                    $digital_conv_valid_inputs_mask = vector());
 
         detail$proto=c$synchrophasor_proto;
+        detail$frame_type = info_cfg$frame_type;
         detail$cfg_frame_id=info_cfg$cfg_frame_id;
         detail$header_time_stamp=timeStamp;
 
@@ -782,6 +785,7 @@ event SYNCHROPHASOR::DataFrame(
 
                 detail$proto=c$synchrophasor_proto;
                 detail$data_frame_id=info_data$data_frame_id;
+                detail$frame_type = info_data$frame_type;
                 detail$header_time_stamp=timeStamp;
 
                 detail$pmu_idx = pmuData[pmuDataIdx]$pmuIdx;
