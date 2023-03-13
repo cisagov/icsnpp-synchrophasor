@@ -286,7 +286,7 @@ Full ICS Protocol Parsers:
 * [S7Comm](https://github.com/cisagov/icsnpp-s7comm)
     * Full Zeek protocol parser for S7comm, S7comm-plus, and COTP
 * [Synchrophasor](https://github.com/cisagov/icsnpp-synchrophasor)
-    * Full Zeek protocol parser for Synchrophasor
+    * Full Zeek protocol parser for Synchrophasor Data Transfer for Power Systems (C37.118)
 
 Updates to Zeek ICS Protocol Parsers:
 
