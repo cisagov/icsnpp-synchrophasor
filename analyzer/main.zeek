@@ -264,13 +264,17 @@ redef record connection += {
 # C37.118.2-2011, E.2, Network communications using Internet protocol (IP)
 # "Default port numbers shall be 4712 for TCP and 4713 for UDP, but in all cases,
 #  the user shall be provided the means to set port numbers as desired."
-const ports = {
-    4712/tcp,
-    4713/udp
-};
-redef likely_server_ports += { ports };
+
+export {
+    const synchrophasor_ports_tcp: set[port] = { 4712/tcp } &redef;
+    const synchrophasor_ports_udp: set[port] = { 4713/udp } &redef;
+}
+redef likely_server_ports += { synchrophasor_ports_tcp, synchrophasor_ports_udp };
 
 event zeek_init() &priority=5 {
+    Analyzer::register_for_ports(Analyzer::ANALYZER_SPICY_SYNCHROPHASOR_TCP, synchrophasor_ports_tcp);
+    Analyzer::register_for_ports(Analyzer::ANALYZER_SPICY_SYNCHROPHASOR_UDP, synchrophasor_ports_udp);
+
     # initialize logging streams for all synchrophasor logs
     Log::create_stream(SYNCHROPHASOR::LOG_SYNCHROPHASOR,
                        [$columns=Synchrophasor_Info,
