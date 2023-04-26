@@ -200,20 +200,13 @@ export {
         data_sorting_type : bool &log &optional;
         pmu_sync_error : bool &log &optional;
         data_error_indicator : count &log &optional;
-        est_rectangular_real_int : vector of int &log &optional;
-        est_rectangular_real_float : vector of double &log &optional;
-        est_rectangular_imaginary_int : vector of int &log &optional;
-        est_rectangular_imaginary_float : vector of double &log &optional;
-        est_polar_magnitude_int : vector of count &log &optional;
-        est_polar_magnitude_float : vector of double &log &optional;
-        est_polar_angle_int : vector of int &log &optional;
-        est_polar_angle_float : vector of double &log &optional;
-        freq_dev_mhz_int : int &log &optional;
-        freq_dev_mhz_float : double &log &optional;
-        rocof_int : int &log &optional;
-        rocof_float : double &log &optional;
-        analog_data_int : vector of int &log &optional;
-        analog_data_float : vector of double &log &optional;
+        est_rectangular_real : vector of double &log &optional;
+        est_rectangular_imaginary : vector of double &log &optional;
+        est_polar_magnitude : vector of double &log &optional;
+        est_polar_angle : vector of double &log &optional;
+        freq_dev_mhz : double &log &optional;
+        rocof : double &log &optional;
+        analog_data : vector of double &log &optional;
         digital : vector of count &log &optional;
     };
 
@@ -777,16 +770,11 @@ event SYNCHROPHASOR::DataFrame(
                     local detail = Synchrophasor_Data_Detail($ts=info_data$ts,
                                                              $uid=c$uid,
                                                              $id=c$id,
-                                                             $est_rectangular_real_int=vector(),
-                                                             $est_rectangular_real_float=vector(),
-                                                             $est_rectangular_imaginary_int=vector(),
-                                                             $est_rectangular_imaginary_float=vector(),
-                                                             $est_polar_magnitude_int=vector(),
-                                                             $est_polar_magnitude_float=vector(),
-                                                             $est_polar_angle_int=vector(),
-                                                             $est_polar_angle_float=vector(),
-                                                             $analog_data_int=vector(),
-                                                             $analog_data_float=vector(),
+                                                             $est_rectangular_real=vector(),
+                                                             $est_rectangular_imaginary=vector(),
+                                                             $est_polar_magnitude=vector(),
+                                                             $est_polar_angle=vector(),
+                                                             $analog_data=vector(),
                                                              $digital=vector());
 
                     detail$proto=c$synchrophasor_proto;
@@ -804,29 +792,73 @@ event SYNCHROPHASOR::DataFrame(
                     detail$data_sorting_type = pmuData[pmuDataIdx]$dataSortingType;
                     detail$pmu_sync_error = pmuData[pmuDataIdx]$pmuSyncError;
                     detail$data_error_indicator = pmuData[pmuDataIdx]$dataErrorIndicator;
-                    detail$freq_dev_mhz_int = pmuData[pmuDataIdx]$freq$freqDevMhzInt;
-                    detail$freq_dev_mhz_float = pmuData[pmuDataIdx]$freq$freqDevMhzFloat;
-                    detail$rocof_int = pmuData[pmuDataIdx]$dfreq$rocofInt;
-                    detail$rocof_float = pmuData[pmuDataIdx]$dfreq$rocofFloat;
                     detail$digital = pmuData[pmuDataIdx]$digital;
+
+                    if ((pmuData[pmuDataIdx]$freq?$freqDevMhzFloat) && (pmuData[pmuDataIdx]$freq$freqDevMhzFloat != 0.0)) {
+                        detail$freq_dev_mhz = pmuData[pmuDataIdx]$freq$freqDevMhzFloat;
+                    } else if ((pmuData[pmuDataIdx]$freq?$freqDevMhzInt) && (pmuData[pmuDataIdx]$freq$freqDevMhzInt != 0)) {
+                        detail$freq_dev_mhz = pmuData[pmuDataIdx]$freq$freqDevMhzInt;
+                    } else {
+                        detail$freq_dev_mhz = 0.0;
+                    }
+
+                    if ((pmuData[pmuDataIdx]$dfreq?$rocofFloat) && (pmuData[pmuDataIdx]$dfreq$rocofFloat != 0.0)) {
+                        detail$rocof = pmuData[pmuDataIdx]$dfreq$rocofFloat;
+                    } else if ((pmuData[pmuDataIdx]$dfreq?$rocofInt) && (pmuData[pmuDataIdx]$dfreq$rocofInt != 0)) {
+                        detail$rocof = pmuData[pmuDataIdx]$dfreq$rocofInt;
+                    } else {
+                        detail$rocof = 0.0;
+                    }
 
                     if (|pmuData[pmuDataIdx]$phasors| > 0) {
                         for (phasorIdx in pmuData[pmuDataIdx]$phasors) {
-                            detail$est_rectangular_real_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValInt;
-                            detail$est_rectangular_real_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValFloat;
-                            detail$est_rectangular_imaginary_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValInt;
-                            detail$est_rectangular_imaginary_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValFloat;
-                            detail$est_polar_magnitude_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValInt;
-                            detail$est_polar_magnitude_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValFloat;
-                            detail$est_polar_angle_int += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValInt;
-                            detail$est_polar_angle_float += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValFloat;
+
+                            if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularRealValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValFloat != 0.0)) {
+                                detail$est_rectangular_real += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValFloat;
+                            } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularRealValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValInt != 0)) {
+                                detail$est_rectangular_real += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValInt;
+                            } else {
+                                detail$est_rectangular_real += 0.0;
+                            }
+
+                            if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularImaginaryValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValFloat != 0.0)) {
+                                detail$est_rectangular_imaginary += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValFloat;
+                            } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularImaginaryValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValInt != 0)) {
+                                detail$est_rectangular_imaginary += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValInt;
+                            } else {
+                                detail$est_rectangular_imaginary += 0.0;
+                            }
+
+                            if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarMagnitudeValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValFloat != 0.0)) {
+                                detail$est_polar_magnitude += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValFloat;
+                            } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarMagnitudeValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValInt != 0)) {
+                                detail$est_polar_magnitude += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValInt;
+                            } else {
+                                detail$est_polar_magnitude += 0.0;
+                            }
+
+                            if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarAngleValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValFloat != 0.0)) {
+                                detail$est_polar_angle += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValFloat;
+                            } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarAngleValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValInt != 0)) {
+                                detail$est_polar_angle += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValInt;
+                            } else {
+                                detail$est_polar_angle += 0.0;
+                            }
+
                         }
                     }
 
                     if (|pmuData[pmuDataIdx]$analog| > 0) {
                         for (analogIdx in pmuData[pmuDataIdx]$analog) {
-                            detail$analog_data_int += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataInt;
-                            detail$analog_data_float += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataFloat;
+
+                            if ((pmuData[pmuDataIdx]$analog[analogIdx]?$analogDataFloat) && (pmuData[pmuDataIdx]$analog[analogIdx]$analogDataFloat != 0.0)) {
+                                detail$analog_data += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataFloat;
+                            } else if ((pmuData[pmuDataIdx]$analog[analogIdx]?$analogDataInt) && (pmuData[pmuDataIdx]$analog[analogIdx]$analogDataInt != 0)) {
+                                detail$analog_data += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataInt;
+                            } else {
+                                detail$analog_data += 0.0;
+                            }
+
                         }
                     }
 

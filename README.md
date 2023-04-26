@@ -246,20 +246,13 @@ Most of the fields listed here are optional. Many may be unused during communica
 | data_sorting_type               | bool           | F = sort by time stamp, T = sort by arrival                  |
 | pmu_sync_error                  | bool           | T = time sync error, F = PMU in sync with time source        |
 | data_error_indicator            | count          | Data error indicator                                         |
-| est_rectangular_real_int        | vector<int>    | Phasor estimate: rectangular real value, integer             |
-| est_rectangular_real_float      | vector<double> | Phasor estimate: rectangular real value, floating-point      |
-| est_rectangular_imaginary_int   | vector<int>    | Phasor estimate: rectangular imaginary value, integer        |
-| est_rectangular_imaginary_float | vector<double> | Phasor estimate: rectangular imaginary value, floating-point |
-| est_polar_magnitude_int         | vector<count>  | Phasor estimate: polar magnitude value, integer              |
-| est_polar_magnitude_float       | vector<double> | Phasor estimate: polar magnitude value, floating-point       |
-| est_polar_angle_int             | vector<int>    | Phasor estimate: polar angle radians, integer                |
-| est_polar_angle_float           | vector<double> | Phasor estimate: polar angle radians, floating-point         |
-| freq_dev_mhz_int                | int            | Frequency deviation from nominal, in mHz, integer            |
-| freq_dev_mhz_float              | double         | Frequency deviation from nominal, in mHz, floating-point     |
-| rocof_int                       | int            | ROCOF, in hertz per second times 100, integer                |
-| rocof_float                     | double         | ROCOF, in hertz per second times 100, floating-point         |
-| analog_data_int                 | vector<int>    | User-defined analog data value, integer                      |
-| analog_data_float               | vector<double> | User-defined analog data value, floating-point               |
+| est_rectangular_real            | vector<double> | Phasor estimate: rectangular real value                      |
+| est_rectangular_imaginary       | vector<double> | Phasor estimate: rectangular imaginary value                 |
+| est_polar_magnitude             | vector<double> | Phasor estimate: polar magnitude value                       |
+| est_polar_angle                 | vector<double> | Phasor estimate: polar angle radians                         |
+| freq_dev_mhz                    | double         | Frequency deviation from nominal, in mHz                     |
+| rocof                           | double         | ROCOF, in hertz per second times 100                         |
+| analog_data                     | vector<double> | User-defined analog data value                               |
 | digital                         | vector<count>  | User-defined digital status word                             |
 
 ## ICSNPP Packages
