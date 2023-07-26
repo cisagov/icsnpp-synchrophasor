@@ -4,7 +4,7 @@ Industrial Control Systems Network Protocol Parsers (ICSNPP) - Synchrophasor Dat
 
 ## Overview
 
-ICSNPP-Synchrophasor is a Zeek plugin (written in [Spicy](https://docs.zeek.org/projects/spicy/en/latest/)) for parsing and logging fields used by the Synchrophasor protocol as presented in the IEEE standard C37.118, defining a transmission format for reporting synchronized phasor measurements in power systems.
+ICSNPP-Synchrophasor is a Zeek plugin (written in [Spicy](https://docs.zeek.org/projects/spicy/en/latest/)) for parsing and logging fields used by the Synchrophasor protocol as presented in IEEE standard C37.118, defining a transmission format for reporting synchronized phasor measurements in power systems.
 
 This parser produces the following log files, defined in [analyzer/main.zeek](analyzer/main.zeek):
 
@@ -29,9 +29,9 @@ $ zkg refresh
 $ zkg install icsnpp-synchrophasor
 ```
 
-If this package is installed from `zkg` it will be added to the available plugins. This can be tested by running `zeek -NN`. If installed correctly you will see `ANALYZER_SPICY_SYNCHROPHASOR_TCP` and `ANALYZER_SPICY_SYNCHROPHASOR_UDP` under the list of `Zeek::Spicy` analyzers.
+If this package is installed from ZKG, it will be added to the available plugins. This can be tested by running `zeek -NN`. If installed correctly, users will see `ANALYZER_SPICY_SYNCHROPHASOR_TCP` and `ANALYZER_SPICY_SYNCHROPHASOR_UDP` under the list of `Zeek::Spicy` analyzers.
 
-If you have `zkg` configured to load packages (see `@load packages` in the [`zkg` Quickstart Guide](https://docs.zeek.org/projects/package-manager/en/stable/quickstart.html)), this plugin and scripts will automatically be loaded and ready to go.
+If users have ZKG configured to load packages (see `@load packages` in the [ZKG Quickstart Guide](https://docs.zeek.org/projects/package-manager/en/stable/quickstart.html)), this plugin and these scripts will automatically be loaded and ready to go.
 
 ## Logging Capabilities
 
@@ -58,7 +58,7 @@ This log summarizes, by connection, Synchrophasor frames transmitted over 4712/t
 | data_frame_count  | count          | Count of data frames observed                             |
 | data_rate         | set<count>     | Data rate values(s) observed                              |
 
-* The **`history`** field is comprised of letters representing commands specified in observed command frames in the order they were transmitted (e.g., `2Dd`, etc.):
+* The **`history`** field is comprised of letters representing commands specified in observed command frames in the order they were transmitted (e.g., `2Dd`):
     - `d` - turn off transmission of data frames
     - `D` - turn on transmission of data frames
     - `h` - send HDR frame
@@ -104,7 +104,7 @@ This log summarizes synchrophasor Header frames.
 | frame_type        | string         | Frame type from synchrophasor frame synchronization word  |
 | frame_size        | count          | Frame size (in bytes)                                     |
 | header_time_stamp | time           | Timestamp from frame header                               |
-| command           | string         | String represetnation of the command                      |
+| command           | string         | String representation of the command                      |
 | data              | string         | Human-readable header data (user-defined)                 |
 
 ### Synchrophasor Configuration Frame Log (synchrophasor_cfg.log)
@@ -133,7 +133,7 @@ This log summarizes synchrophasor Configuration (CFG-1, CFG-2, and CFG-3) frames
 
 #### Overview
 
-This log lists the per-PMU details from synchrophasor Configuration (CFG-1, CFG-2, and CFG-3) frames. As this can be very verbose, this log file is **disabled** by default. You can enable it by appending `SYNCHROPHASOR::log_cfg_detail=T` to your `zeek` command on the command line or by adding `redef SYNCHROPHASOR::log_cfg_detail = T;` to your `local.zeek` file.
+This log lists the per-PMU details from synchrophasor Configuration (CFG-1, CFG-2, and CFG-3) frames. As this can be very verbose, this log file is **disabled** by default. Users can enable it by appending `SYNCHROPHASOR::log_cfg_detail=T` to the `zeek` command on the command line or by adding `redef SYNCHROPHASOR::log_cfg_detail = T;` to the `local.zeek` file.
 
 #### Fields Captured
 
@@ -289,7 +289,7 @@ Updates to Zeek ICS Protocol Parsers:
     * Modbus Zeek script extending logging capabilities of Zeek's default Modbus protocol parser
 
 ### Other Software
-Idaho National Laboratory is a cutting edge research facility which is a constantly producing high quality research and software. Feel free to take a look at our other software and scientific offerings at:
+Idaho National Laboratory is a national research facility with a focus on development of software and toolchains to improve the security of criticial infrastructure environments around the world. Please review our other software and scientific offerings at:
 
 [Primary Technology Offerings Page](https://www.inl.gov/inl-initiatives/technology-deployment)
 
@@ -301,4 +301,4 @@ Idaho National Laboratory is a cutting edge research facility which is a constan
 
 ### License
 
-Copyright 2023 Battelle Energy Alliance, LLC. Released under the terms of the 3-Part BSD license (see [`LICENSE`](./LICENSE)).
+Copyright 2023 Battelle Energy Alliance, LLC. Released under the terms of the 3-Clause BSD License (see [`LICENSE`](./LICENSE)).
