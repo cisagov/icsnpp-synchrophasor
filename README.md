@@ -39,7 +39,11 @@ If you have `zkg` configured to load packages (see `@load packages` in the [`zkg
 
 #### Overview
 
-This log summarizes, by connection, Synchrophasor frames transmitted over 4712/tcp or 4713/udp to `synchrophasor.log`.
+This log summarizes, by connection, Synchrophasor frames transmitted over 4712/tcp or 4713/udp to `synchrophasor.log`. The port can be overriden by redefining the `synchrophasor_ports_tcp` and `synchrophasor_ports_udp` variables, respectively, e.g.:
+
+```
+$ zeek -C -r synchrophasor_tcp.pcap local "SYNCHROPHASOR::synchrophasor_ports_tcp={ 40712/tcp }"
+```
 
 #### Fields Captured
 
