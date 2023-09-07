@@ -18,11 +18,9 @@ export SYNCHROPHASOR::ROCOFRec;
 # "Default port numbers shall be 4712 for TCP and 4713 for UDP, but in all cases,
 #  the user shall be provided the means to set port numbers as desired."
 protocol analyzer spicy::SYNCHROPHASOR_TCP over TCP:
-    parse with SYNCHROPHASOR::Frames,
-    port 4712/tcp;
+    parse with SYNCHROPHASOR::Frames;
 protocol analyzer spicy::SYNCHROPHASOR_UDP over UDP:
-    parse with SYNCHROPHASOR::Frames,
-    port 4713/udp;
+    parse with SYNCHROPHASOR::Frames;
 
 on SYNCHROPHASOR::CommandFrame -> event SYNCHROPHASOR::CommandFrame(
     $conn,
