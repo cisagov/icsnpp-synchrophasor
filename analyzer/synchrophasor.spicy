@@ -855,5 +855,5 @@ public type Frame = unit(inout cfgMap : ConfigFrameMap&) {
 
 public type Frames = unit() {
     %context = ConfigFrameMap;
-    frames : Frame(self.context())[];
+    : Frame(self.context())[];
 };
