@@ -307,12 +307,11 @@ event zeek_init() &priority=5 {
 }
 
 # triggered by SYNCHROPHASOR::FrameHeader::%done, set synchrophasor_proto according to analyzer
-event analyzer_confirmation(c: connection, atype: Analyzer::Tag, aid: count) &priority=5 {
-
+event analyzer_confirmation_info(atype: AllAnalyzers::Tag, info: AnalyzerConfirmationInfo) {
   if ( atype == Analyzer::ANALYZER_SPICY_SYNCHROPHASOR_TCP ) {
-    c$synchrophasor_proto = "tcp";
+    info$c$synchrophasor_proto = "tcp";
   } else if ( atype == Analyzer::ANALYZER_SPICY_SYNCHROPHASOR_UDP ) {
-    c$synchrophasor_proto = "udp";
+    info$c$synchrophasor_proto = "udp";
   }
 
 }
