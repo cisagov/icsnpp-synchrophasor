@@ -513,10 +513,7 @@ function emit_synchrophasor_log_all(c: connection) {
     emit_synchrophasor_data_log(c);
 }
 
-##
-## Synchrophasor message frame events
-##
-
+# Synchrophasor message frame events
 event SYNCHROPHASOR::CommandFrame(
     c: connection,
     is_orig: bool,
