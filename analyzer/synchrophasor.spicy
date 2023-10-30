@@ -160,8 +160,8 @@ type AnalogConversionFactor = unit(frameType : FrameTypeCode) {
         analogFlagsBits : 0..7;
         userDefinedScalingBits : 8..31;
     } if (frameType != FrameTypeCode::CONFIG_3_FRAME) {
-        self.analogFlags = cast<uint8>($$.analogFlags);
-        self.userDefinedScaling = cast<int32>($$.userDefinedScaling);
+        self.analogFlags = cast<uint8>($$.analogFlagsBits);
+        self.userDefinedScaling = cast<int32>($$.userDefinedScalingBits);
     }
 
     # CFG-3
