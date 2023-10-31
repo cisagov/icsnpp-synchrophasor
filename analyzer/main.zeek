@@ -272,8 +272,8 @@ export {
 redef likely_server_ports += { synchrophasor_ports_tcp, synchrophasor_ports_udp };
 
 event zeek_init() &priority=5 {
-    Analyzer::register_for_ports(Analyzer::ANALYZER_SPICY_SYNCHROPHASOR_TCP, synchrophasor_ports_tcp);
-    Analyzer::register_for_ports(Analyzer::ANALYZER_SPICY_SYNCHROPHASOR_UDP, synchrophasor_ports_udp);
+    Analyzer::register_for_ports(Analyzer::ANALYZER_SYNCHROPHASOR_TCP, synchrophasor_ports_tcp);
+    Analyzer::register_for_ports(Analyzer::ANALYZER_SYNCHROPHASOR_UDP, synchrophasor_ports_udp);
 
     # initialize logging streams for all synchrophasor logs
     Log::create_stream(SYNCHROPHASOR::LOG_SYNCHROPHASOR,
@@ -308,9 +308,9 @@ event zeek_init() &priority=5 {
 
 # triggered by SYNCHROPHASOR::FrameHeader::%done, set synchrophasor_proto according to analyzer
 event analyzer_confirmation_info(atype: AllAnalyzers::Tag, info: AnalyzerConfirmationInfo) {
-  if ( atype == Analyzer::ANALYZER_SPICY_SYNCHROPHASOR_TCP ) {
+  if ( atype == Analyzer::ANALYZER_SYNCHROPHASOR_TCP ) {
     info$c$synchrophasor_proto = "tcp";
-  } else if ( atype == Analyzer::ANALYZER_SPICY_SYNCHROPHASOR_UDP ) {
+  } else if ( atype == Analyzer::ANALYZER_SYNCHROPHASOR_UDP ) {
     info$c$synchrophasor_proto = "udp";
   }
 

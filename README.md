@@ -29,7 +29,7 @@ $ zkg refresh
 $ zkg install icsnpp-synchrophasor
 ```
 
-If this package is installed from `zkg` it will be added to the available plugins. This can be tested by running `zeek -NN`. If installed correctly you will see `ANALYZER_SPICY_SYNCHROPHASOR_TCP` and `ANALYZER_SPICY_SYNCHROPHASOR_UDP` under the list of `Zeek::Spicy` analyzers.
+If this package is installed from `zkg` it will be added to the available plugins. This can be tested by running `zeek -NN`. If installed correctly you will see `ANALYZER_SYNCHROPHASOR_TCP` and `ANALYZER_SYNCHROPHASOR_UDP` under the list of `Zeek::Spicy` analyzers.
 
 If you have `zkg` configured to load packages (see `@load packages` in the [`zkg` Quickstart Guide](https://docs.zeek.org/projects/package-manager/en/stable/quickstart.html)), this plugin and scripts will automatically be loaded and ready to go.
 
