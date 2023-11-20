@@ -307,13 +307,21 @@ event zeek_init() &priority=5 {
 }
 
 # triggered by SYNCHROPHASOR::FrameHeader::%done, set synchrophasor_proto according to analyzer
+@if (Version::at_least("6.1.0"))
 event analyzer_confirmation_info(atype: AllAnalyzers::Tag, info: AnalyzerConfirmationInfo) {
   if ( atype == Analyzer::ANALYZER_SYNCHROPHASOR_TCP ) {
     info$c$synchrophasor_proto = "tcp";
   } else if ( atype == Analyzer::ANALYZER_SYNCHROPHASOR_UDP ) {
     info$c$synchrophasor_proto = "udp";
   }
-
+@else
+event analyzer_confirmation(c: connection, atype: Analyzer::Tag, aid: count) &priority=5 {
+  if ( atype == Analyzer::ANALYZER_SYNCHROPHASOR_TCP ) {
+    c$synchrophasor_proto = "tcp";
+  } else if ( atype == Analyzer::ANALYZER_SYNCHROPHASOR_UDP ) {
+    c$synchrophasor_proto = "udp";
+  }
+@endif
 }
 
 # set_session_* functions for each of the synchrophasor frame events
