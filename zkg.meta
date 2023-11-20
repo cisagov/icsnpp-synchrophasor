@@ -10,7 +10,7 @@ plugin_dir = build/spicy-modules
 build_command = mkdir -p build && cd build && SPICYZ=$(command -v spicyz || echo %(package_base)s/spicy-plugin/build/bin/spicyz) cmake .. && cmake --build .
 test_command = cd tests && PATH=$(zkg config plugin_dir)/packages/spicy-plugin/bin:$PATH btest -d -j $(nproc)
 depends =
-  zeek >=6.0.1
+  zeek >=6.0.0
 
 [template]
 source = package-template-spicy
