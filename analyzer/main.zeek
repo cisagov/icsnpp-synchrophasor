@@ -14,11 +14,6 @@ module SYNCHROPHASOR;
 
 export {
 
-    # this protocol can be very verbose, so some logging is disabled by default; override with T to enable
-    const log_cfg_detail = F &redef;
-    const log_data_frame = F &redef;
-    const log_data_detail = F &redef;
-
     # define log enums for synchrophasor, synchrophasor_cmd, synchrophasor_hdr,
     #   synchrophasor_cfg, synchrophasor_cfg_detail, synchrophasor_data and synchrophasor_data_detail
     redef enum Log::ID += { LOG_SYNCHROPHASOR,
@@ -212,12 +207,19 @@ export {
 
     # global events for logging
     global log_synchrophasor: event(rec: Synchrophasor_Info);
+    global log_policy_sychrophasor: Log::PolicyHook;
     global log_synchrophasor_command: event(rec: Synchrophasor_Command);
+    global log_policy_sychrophasor_command: Log::PolicyHook;
     global log_synchrophasor_header: event(rec: Synchrophasor_Header);
+    global log_policy_sychrophasor_header: Log::PolicyHook;
     global log_synchrophasor_config: event(rec: Synchrophasor_Config);
+    global log_policy_sychrophasor_config: Log::PolicyHook;
     global log_synchrophasor_config_detail: event(rec: Synchrophasor_Config_Detail);
+    global log_policy_sychrophasor_config_detail: Log::PolicyHook;
     global log_synchrophasor_data: event(rec: Synchrophasor_Data);
+    global log_policy_sychrophasor_data: Log::PolicyHook;
     global log_synchrophasor_data_detail: event(rec: Synchrophasor_Data_Detail);
+    global log_policy_sychrophasor_data_detail: Log::PolicyHook;
 
     # command code initials for Synchrophasor_Info::history field
     const COMMAND_CODES_INITIALS = {
@@ -279,31 +281,38 @@ event zeek_init() &priority=5 {
     Log::create_stream(SYNCHROPHASOR::LOG_SYNCHROPHASOR,
                        [$columns=Synchrophasor_Info,
                        $ev=log_synchrophasor,
-                       $path="synchrophasor"]);
+                       $path="synchrophasor",
+                       $policy=log_policy_sychrophasor]);
     Log::create_stream(SYNCHROPHASOR::LOG_SYNCHROPHASOR_COMMAND,
                        [$columns=Synchrophasor_Command,
                        $ev=log_synchrophasor_command,
-                       $path="synchrophasor_cmd"]);
+                       $path="synchrophasor_cmd",
+                       $policy=log_policy_sychrophasor_command]);
     Log::create_stream(SYNCHROPHASOR::LOG_SYNCHROPHASOR_HEADER,
                        [$columns=Synchrophasor_Header,
                        $ev=log_synchrophasor_header,
-                       $path="synchrophasor_hdr"]);
+                       $path="synchrophasor_hdr",
+                       $policy=log_policy_sychrophasor_header]);
     Log::create_stream(SYNCHROPHASOR::LOG_SYNCHROPHASOR_CONFIG,
                        [$columns=Synchrophasor_Config,
                        $ev=log_synchrophasor_config,
-                       $path="synchrophasor_cfg"]);
+                       $path="synchrophasor_cfg",
+                       $policy=log_policy_sychrophasor_config]);
     Log::create_stream(SYNCHROPHASOR::LOG_SYNCHROPHASOR_CONFIG_DETAIL,
                        [$columns=Synchrophasor_Config_Detail,
                        $ev=log_synchrophasor_config_detail,
-                       $path="synchrophasor_cfg_detail"]);
+                       $path="synchrophasor_cfg_detail",
+                       $policy=log_policy_sychrophasor_config_detail]);
     Log::create_stream(SYNCHROPHASOR::LOG_SYNCHROPHASOR_DATA,
                        [$columns=Synchrophasor_Data,
                        $ev=log_synchrophasor_data,
-                       $path="synchrophasor_data"]);
+                       $path="synchrophasor_data",
+                       $policy=log_policy_sychrophasor_data]);
     Log::create_stream(SYNCHROPHASOR::LOG_SYNCHROPHASOR_DATA_DETAIL,
                        [$columns=Synchrophasor_Data_Detail,
                        $ev=log_synchrophasor_data_detail,
-                       $path="synchrophasor_data_detail"]);
+                       $path="synchrophasor_data_detail",
+                       $policy=log_policy_sychrophasor_data_detail]);
 }
 
 # triggered by SYNCHROPHASOR::FrameHeader::%done, set synchrophasor_proto according to analyzer
@@ -434,7 +443,7 @@ hook set_session_data(c: connection) {
             $data_frame_count=0,
             $data_rate=set());
 
-    if (( log_data_frame ) && ( ! c?$synchrophasor_data ))
+    if (! c?$synchrophasor_data )
         c$synchrophasor_data = Synchrophasor_Data(
             $ts=network_time(),
             $uid=c$uid,
@@ -502,12 +511,10 @@ function emit_synchrophasor_data_log(c: connection) {
     if ( ! c?$synchrophasor_data )
         return;
 
-    if ( log_data_frame ) {
-        if (c?$synchrophasor_proto)
-          c$synchrophasor_data$proto = c$synchrophasor_proto;
+    if (c?$synchrophasor_proto)
+      c$synchrophasor_data$proto = c$synchrophasor_proto;
 
-        Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_DATA, c$synchrophasor_data);
-    }
+    Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_DATA, c$synchrophasor_data);
 
     delete c$synchrophasor_data;
 }
@@ -604,7 +611,7 @@ event SYNCHROPHASOR::ConfigFrame(
 
     info_cfg$cfg_frame_id = unique_id("c");
 
-    if ((log_cfg_detail) && (|pmuCfgs| > 0)) {
+    if (|pmuCfgs| > 0) {
       for (pmuCfgIdx in pmuCfgs) {
         local detail = Synchrophasor_Config_Detail($ts=info_cfg$ts,
                                                    $uid=c$uid,
@@ -742,12 +749,10 @@ event SYNCHROPHASOR::DataFrame(
     local info = c$synchrophasor;
     local info_data : Synchrophasor_Data;
 
-    if ( log_data_frame ) {
-        info_data = c$synchrophasor_data;
+    info_data = c$synchrophasor_data;
 
-        info_data$frame_type = FRAME_TYPES[frameType];
-        info_data$frame_size = frameSize;
-    }
+    info_data$frame_type = FRAME_TYPES[frameType];
+    info_data$frame_size = frameSize;
 
     add info$version[version];
     add info$data_stream_id[dataStreamId];
@@ -762,120 +767,118 @@ event SYNCHROPHASOR::DataFrame(
 
     info$data_frame_count += 1;
 
-    if (log_data_frame) {
 
-        # if the data frame didn't get "initialized" that means that the analyzer
-        # never saw the config frame used to parse it. in other words, it's garbage.
-        # we can note the stuff from the frameheader (like we just did) but that's it.
+    # if the data frame didn't get "initialized" that means that the analyzer
+    # never saw the config frame used to parse it. in other words, it's garbage.
+    # we can note the stuff from the frameheader (like we just did) but that's it.
 
-        if (initialized) {
-            info_data$pmu_count_expected = numPMUExpected;
-            info_data$pmu_count_actual = numPMUActual;
-            info_data$data_frame_id = unique_id("d");
+    if (initialized) {
+        info_data$pmu_count_expected = numPMUExpected;
+        info_data$pmu_count_actual = numPMUActual;
+        info_data$data_frame_id = unique_id("d");
 
-            if ((log_data_detail) && (|pmuData| > 0)) {
-                for (pmuDataIdx in pmuData) {
-                    local detail = Synchrophasor_Data_Detail($ts=info_data$ts,
-                                                             $uid=c$uid,
-                                                             $id=c$id,
-                                                             $est_rectangular_real=vector(),
-                                                             $est_rectangular_imaginary=vector(),
-                                                             $est_polar_magnitude=vector(),
-                                                             $est_polar_angle=vector(),
-                                                             $analog_data=vector(),
-                                                             $digital=vector());
+        if (|pmuData| > 0) {
+            for (pmuDataIdx in pmuData) {
+                local detail = Synchrophasor_Data_Detail($ts=info_data$ts,
+                                                         $uid=c$uid,
+                                                         $id=c$id,
+                                                         $est_rectangular_real=vector(),
+                                                         $est_rectangular_imaginary=vector(),
+                                                         $est_polar_magnitude=vector(),
+                                                         $est_polar_angle=vector(),
+                                                         $analog_data=vector(),
+                                                         $digital=vector());
 
-                    detail$proto=c$synchrophasor_proto;
-                    detail$data_frame_id=info_data$data_frame_id;
-                    detail$frame_type = info_data$frame_type;
-                    detail$header_time_stamp=timeStamp;
+                detail$proto=c$synchrophasor_proto;
+                detail$data_frame_id=info_data$data_frame_id;
+                detail$frame_type = info_data$frame_type;
+                detail$header_time_stamp=timeStamp;
 
-                    detail$pmu_idx = pmuData[pmuDataIdx]$pmuIdx;
-                    detail$trigger_reason = pmuData[pmuDataIdx]$triggerReason;
-                    detail$unlocked_time = pmuData[pmuDataIdx]$unlockedTime;
-                    detail$pmu_time_quality = pmuData[pmuDataIdx]$pmuTimeQuality;
-                    detail$data_modified = pmuData[pmuDataIdx]$dataModified;
-                    detail$config_change = pmuData[pmuDataIdx]$configChange;
-                    detail$pmu_trigger_pickup = pmuData[pmuDataIdx]$pmuTriggerPickup;
-                    detail$data_sorting_type = pmuData[pmuDataIdx]$dataSortingType;
-                    detail$pmu_sync_error = pmuData[pmuDataIdx]$pmuSyncError;
-                    detail$data_error_indicator = pmuData[pmuDataIdx]$dataErrorIndicator;
-                    detail$digital = pmuData[pmuDataIdx]$digital;
+                detail$pmu_idx = pmuData[pmuDataIdx]$pmuIdx;
+                detail$trigger_reason = pmuData[pmuDataIdx]$triggerReason;
+                detail$unlocked_time = pmuData[pmuDataIdx]$unlockedTime;
+                detail$pmu_time_quality = pmuData[pmuDataIdx]$pmuTimeQuality;
+                detail$data_modified = pmuData[pmuDataIdx]$dataModified;
+                detail$config_change = pmuData[pmuDataIdx]$configChange;
+                detail$pmu_trigger_pickup = pmuData[pmuDataIdx]$pmuTriggerPickup;
+                detail$data_sorting_type = pmuData[pmuDataIdx]$dataSortingType;
+                detail$pmu_sync_error = pmuData[pmuDataIdx]$pmuSyncError;
+                detail$data_error_indicator = pmuData[pmuDataIdx]$dataErrorIndicator;
+                detail$digital = pmuData[pmuDataIdx]$digital;
 
-                    if ((pmuData[pmuDataIdx]$freq?$freqDevMhzFloat) && (pmuData[pmuDataIdx]$freq$freqDevMhzFloat != 0.0)) {
-                        detail$freq_dev_mhz = pmuData[pmuDataIdx]$freq$freqDevMhzFloat;
-                    } else if ((pmuData[pmuDataIdx]$freq?$freqDevMhzInt) && (pmuData[pmuDataIdx]$freq$freqDevMhzInt != 0)) {
-                        detail$freq_dev_mhz = pmuData[pmuDataIdx]$freq$freqDevMhzInt;
-                    } else {
-                        detail$freq_dev_mhz = 0.0;
-                    }
-
-                    if ((pmuData[pmuDataIdx]$dfreq?$rocofFloat) && (pmuData[pmuDataIdx]$dfreq$rocofFloat != 0.0)) {
-                        detail$rocof = pmuData[pmuDataIdx]$dfreq$rocofFloat;
-                    } else if ((pmuData[pmuDataIdx]$dfreq?$rocofInt) && (pmuData[pmuDataIdx]$dfreq$rocofInt != 0)) {
-                        detail$rocof = pmuData[pmuDataIdx]$dfreq$rocofInt;
-                    } else {
-                        detail$rocof = 0.0;
-                    }
-
-                    if (|pmuData[pmuDataIdx]$phasors| > 0) {
-                        for (phasorIdx in pmuData[pmuDataIdx]$phasors) {
-
-                            if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularRealValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValFloat != 0.0)) {
-                                detail$est_rectangular_real += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValFloat;
-                            } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularRealValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValInt != 0)) {
-                                detail$est_rectangular_real += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValInt;
-                            } else {
-                                detail$est_rectangular_real += 0.0;
-                            }
-
-                            if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularImaginaryValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValFloat != 0.0)) {
-                                detail$est_rectangular_imaginary += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValFloat;
-                            } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularImaginaryValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValInt != 0)) {
-                                detail$est_rectangular_imaginary += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValInt;
-                            } else {
-                                detail$est_rectangular_imaginary += 0.0;
-                            }
-
-                            if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarMagnitudeValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValFloat != 0.0)) {
-                                detail$est_polar_magnitude += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValFloat;
-                            } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarMagnitudeValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValInt != 0)) {
-                                detail$est_polar_magnitude += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValInt;
-                            } else {
-                                detail$est_polar_magnitude += 0.0;
-                            }
-
-                            if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarAngleValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValFloat != 0.0)) {
-                                detail$est_polar_angle += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValFloat;
-                            } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarAngleValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValInt != 0)) {
-                                detail$est_polar_angle += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValInt;
-                            } else {
-                                detail$est_polar_angle += 0.0;
-                            }
-
-                        }
-                    }
-
-                    if (|pmuData[pmuDataIdx]$analog| > 0) {
-                        for (analogIdx in pmuData[pmuDataIdx]$analog) {
-
-                            if ((pmuData[pmuDataIdx]$analog[analogIdx]?$analogDataFloat) && (pmuData[pmuDataIdx]$analog[analogIdx]$analogDataFloat != 0.0)) {
-                                detail$analog_data += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataFloat;
-                            } else if ((pmuData[pmuDataIdx]$analog[analogIdx]?$analogDataInt) && (pmuData[pmuDataIdx]$analog[analogIdx]$analogDataInt != 0)) {
-                                detail$analog_data += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataInt;
-                            } else {
-                                detail$analog_data += 0.0;
-                            }
-
-                        }
-                    }
-
-                    Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_DATA_DETAIL, detail);
+                if ((pmuData[pmuDataIdx]$freq?$freqDevMhzFloat) && (pmuData[pmuDataIdx]$freq$freqDevMhzFloat != 0.0)) {
+                    detail$freq_dev_mhz = pmuData[pmuDataIdx]$freq$freqDevMhzFloat;
+                } else if ((pmuData[pmuDataIdx]$freq?$freqDevMhzInt) && (pmuData[pmuDataIdx]$freq$freqDevMhzInt != 0)) {
+                    detail$freq_dev_mhz = pmuData[pmuDataIdx]$freq$freqDevMhzInt;
+                } else {
+                    detail$freq_dev_mhz = 0.0;
                 }
+
+                if ((pmuData[pmuDataIdx]$dfreq?$rocofFloat) && (pmuData[pmuDataIdx]$dfreq$rocofFloat != 0.0)) {
+                    detail$rocof = pmuData[pmuDataIdx]$dfreq$rocofFloat;
+                } else if ((pmuData[pmuDataIdx]$dfreq?$rocofInt) && (pmuData[pmuDataIdx]$dfreq$rocofInt != 0)) {
+                    detail$rocof = pmuData[pmuDataIdx]$dfreq$rocofInt;
+                } else {
+                    detail$rocof = 0.0;
+                }
+
+                if (|pmuData[pmuDataIdx]$phasors| > 0) {
+                    for (phasorIdx in pmuData[pmuDataIdx]$phasors) {
+
+                        if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularRealValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValFloat != 0.0)) {
+                            detail$est_rectangular_real += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValFloat;
+                        } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularRealValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValInt != 0)) {
+                            detail$est_rectangular_real += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularRealValInt;
+                        } else {
+                            detail$est_rectangular_real += 0.0;
+                        }
+
+                        if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularImaginaryValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValFloat != 0.0)) {
+                            detail$est_rectangular_imaginary += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValFloat;
+                        } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$rectangularImaginaryValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValInt != 0)) {
+                            detail$est_rectangular_imaginary += pmuData[pmuDataIdx]$phasors[phasorIdx]$rectangularImaginaryValInt;
+                        } else {
+                            detail$est_rectangular_imaginary += 0.0;
+                        }
+
+                        if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarMagnitudeValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValFloat != 0.0)) {
+                            detail$est_polar_magnitude += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValFloat;
+                        } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarMagnitudeValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValInt != 0)) {
+                            detail$est_polar_magnitude += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarMagnitudeValInt;
+                        } else {
+                            detail$est_polar_magnitude += 0.0;
+                        }
+
+                        if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarAngleValFloat) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValFloat != 0.0)) {
+                            detail$est_polar_angle += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValFloat;
+                        } else if ((pmuData[pmuDataIdx]$phasors[phasorIdx]?$polarAngleValInt) && (pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValInt != 0)) {
+                            detail$est_polar_angle += pmuData[pmuDataIdx]$phasors[phasorIdx]$polarAngleValInt;
+                        } else {
+                            detail$est_polar_angle += 0.0;
+                        }
+
+                    }
+                }
+
+                if (|pmuData[pmuDataIdx]$analog| > 0) {
+                    for (analogIdx in pmuData[pmuDataIdx]$analog) {
+
+                        if ((pmuData[pmuDataIdx]$analog[analogIdx]?$analogDataFloat) && (pmuData[pmuDataIdx]$analog[analogIdx]$analogDataFloat != 0.0)) {
+                            detail$analog_data += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataFloat;
+                        } else if ((pmuData[pmuDataIdx]$analog[analogIdx]?$analogDataInt) && (pmuData[pmuDataIdx]$analog[analogIdx]$analogDataInt != 0)) {
+                            detail$analog_data += pmuData[pmuDataIdx]$analog[analogIdx]$analogDataInt;
+                        } else {
+                            detail$analog_data += 0.0;
+                        }
+
+                    }
+                }
+
+                Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_DATA_DETAIL, detail);
             }
         }
-        emit_synchrophasor_data_log(c);
     }
+    emit_synchrophasor_data_log(c);
 }
 
 event SYNCHROPHASOR::HeaderFrame(
