@@ -17,12 +17,10 @@ export SYNCHROPHASOR::ROCOFRec;
 # C37.118.2-2011, E.2, Network communications using Internet protocol (IP)
 # "Default port numbers shall be 4712 for TCP and 4713 for UDP, but in all cases,
 #  the user shall be provided the means to set port numbers as desired."
-protocol analyzer spicy::SYNCHROPHASOR_TCP over TCP:
-    parse with SYNCHROPHASOR::Frames,
-    port 4712/tcp;
-protocol analyzer spicy::SYNCHROPHASOR_UDP over UDP:
-    parse with SYNCHROPHASOR::Frames,
-    port 4713/udp;
+protocol analyzer SYNCHROPHASOR_TCP over TCP:
+    parse with SYNCHROPHASOR::Frames;
+protocol analyzer SYNCHROPHASOR_UDP over UDP:
+    parse with SYNCHROPHASOR::Frames;
 
 on SYNCHROPHASOR::CommandFrame -> event SYNCHROPHASOR::CommandFrame(
     $conn,

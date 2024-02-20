@@ -33,11 +33,11 @@ type SyncField = unit() {
 
     # remainder of sync field holds protocol version and the frame type code
     : bitfield(8) {
-        version : 0..3;
+        versionBits : 0..3;
         frameTypeBits : 4..6;
         _ : 7;
     } {
-        self.version = $$.version;
+        self.version = $$.versionBits;
         self.frameType = cast<FrameTypeCode>(cast<uint8>($$.frameTypeBits));
     }
 };
@@ -157,11 +157,11 @@ type AnalogConversionFactor = unit(frameType : FrameTypeCode) {
     var userDefinedScaling : int32 = 0;
 
     : bitfield(32) {
-        analogFlags : 0..7;
-        userDefinedScaling : 8..31;
+        analogFlagsBits : 0..7;
+        userDefinedScalingBits : 8..31;
     } if (frameType != FrameTypeCode::CONFIG_3_FRAME) {
-        self.analogFlags = cast<uint8>($$.analogFlags);
-        self.userDefinedScaling = cast<int32>($$.userDefinedScaling);
+        self.analogFlags = cast<uint8>($$.analogFlagsBits);
+        self.userDefinedScaling = cast<int32>($$.userDefinedScalingBits);
     }
 
     # CFG-3
@@ -855,5 +855,5 @@ public type Frame = unit(inout cfgMap : ConfigFrameMap&) {
 
 public type Frames = unit() {
     %context = ConfigFrameMap;
-    frames : Frame(self.context())[];
+    : Frame(self.context())[];
 };

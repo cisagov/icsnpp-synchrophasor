@@ -29,6 +29,7 @@ $ zkg refresh
 $ zkg install icsnpp-synchrophasor
 ```
 
+
 If this package is installed from ZKG, it will be added to the available plugins. This can be tested by running `zeek -NN`. If installed correctly, users will see `ANALYZER_SPICY_SYNCHROPHASOR_TCP` and `ANALYZER_SPICY_SYNCHROPHASOR_UDP` under the list of `Zeek::Spicy` analyzers.
 
 If users have ZKG configured to load packages (see `@load packages` in the [ZKG Quickstart Guide](https://docs.zeek.org/projects/package-manager/en/stable/quickstart.html)), this plugin and these scripts will automatically be loaded and ready to go.
@@ -39,7 +40,11 @@ If users have ZKG configured to load packages (see `@load packages` in the [ZKG 
 
 #### Overview
 
-This log summarizes, by connection, Synchrophasor frames transmitted over 4712/tcp or 4713/udp to `synchrophasor.log`.
+This log summarizes, by connection, Synchrophasor frames transmitted over 4712/tcp or 4713/udp to `synchrophasor.log`. The port can be overriden by redefining the `synchrophasor_ports_tcp` and `synchrophasor_ports_udp` variables, respectively, e.g.:
+
+```
+$ zeek -C -r synchrophasor_tcp.pcap local "SYNCHROPHASOR::synchrophasor_ports_tcp={ 40712/tcp }"
+```
 
 #### Fields Captured
 
@@ -280,6 +285,8 @@ Full ICS Protocol Parsers:
     * Full Zeek protocol parser for S7comm, S7comm-plus, and COTP
 * [Synchrophasor](https://github.com/cisagov/icsnpp-synchrophasor)
     * Full Zeek protocol parser for Synchrophasor Data Transfer for Power Systems (C37.118)
+* [Profinet IO CM](https://github.com/cisagov/icsnpp-profinet-io-cm)
+    * Full Zeek protocol parser for Profinet I/O Context Manager
 
 Updates to Zeek ICS Protocol Parsers:
 
@@ -302,3 +309,4 @@ Idaho National Laboratory is a national research facility with a focus on develo
 ### License
 
 Copyright 2023 Battelle Energy Alliance, LLC. Released under the terms of the 3-Clause BSD License (see [`LICENSE`](./LICENSE)).
+
