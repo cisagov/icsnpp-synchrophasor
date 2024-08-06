@@ -88,7 +88,7 @@ type CommandFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
 type HeaderFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
     var data : string = "";
     : bytes &eod {
-        self.data = $$.decode(hilti::Charset::ASCII);
+        self.data = $$.decode(spicy::Charset::ASCII);
     }
 };
 
@@ -490,7 +490,7 @@ type PMUConfig = unit(header : FrameHeader, inout cfgMap : ConfigFrameMap&, inou
 
     # service class, measurement window and measurement group delay (CFG-3)
     : bytes &size = 1 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME) {
-        self.svcClass = $$.decode(hilti::Charset::ASCII);
+        self.svcClass = $$.decode(spicy::Charset::ASCII);
     }
     window : int32 &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
     groupDelay : int32 &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
@@ -515,18 +515,18 @@ type NameField = unit(frameType : FrameTypeCode) {
     var trimmedName : string = "";
 
     : bytes &size = 16 if (frameType != FrameTypeCode::CONFIG_3_FRAME) {
-        self.trimmedName = $$.decode(hilti::Charset::ASCII);
+        self.trimmedName = $$.decode(spicy::Charset::ASCII);
         # TODO: spicy bug here (error ...: bound object has expired)
         # This has been fixed, once spicy 1.5 has been out for a while we
         # can go back to trimming on the spicy side instead of the Zeek side.
         # - https://github.com/zeek/spicy/issues/1390
         # - https://github.com/zeek/spicy/pull/1391
-        # self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::ASCII);
+        # self.trimmedName = $$.strip(spicy::Side::Both).decode(spicy::Charset::ASCII);
     }
 
     nameLen : uint8 &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
     : bytes &size = self.nameLen if (frameType == FrameTypeCode::CONFIG_3_FRAME) {
-        self.trimmedName = $$.decode(hilti::Charset::UTF8);
+        self.trimmedName = $$.decode(spicy::Charset::UTF8);
     }
 
 } &convert=self.trimmedName;
