@@ -88,7 +88,7 @@ type CommandFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
 type HeaderFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
     var data : string = "";
     : bytes &eod {
-        self.data = $$.decode(hilti::Charset::ASCII);
+        self.data = $$.decode(spicy::Charset::ASCII);
     }
 };
 
@@ -184,7 +184,7 @@ type NominalLineFreq = unit() {
 # C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
 # C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
 
-type ConfigFrame = unit(parent : Frame, inout cfgMap : ConfigFrameMap&) {
+type ConfigFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
     var initialized : bool = False;
     var cfgNum : bool = False;
     var timeBase : uint32 = 1000000;
@@ -279,72 +279,72 @@ type PMUConfigRec = tuple<
     cfgcnt : uint16>;
 
 function PhasorConversionFactorToRec(u : PhasorConversionFactor) : PhasorConversionFactorRec {
-    local result : PhasorConversionFactorRec;
+    local resultRec : PhasorConversionFactorRec;
 
     if (u?.format) {
-        result.phunit = u.format.phunit;
-        result.phvalue = u.format.phvalue;
+        resultRec.phunit = u.format.phunit;
+        resultRec.phvalue = u.format.phvalue;
     }
 
     if (u?.flags) {
-        result.upsampledInterpolation = (u.flags.upsampledInterpolation != 0);
-        result.upsampledExtrapolation = (u.flags.upsampledExtrapolation != 0);
-        result.downsampledReselection = (u.flags.downsampledReselection != 0);
-        result.downsampledFIRFilter = (u.flags.downsampledFIRFilter != 0);
-        result.downsampledNoFIRFilter = (u.flags.downsampledNoFIRFilter != 0);
-        result.filteredWithoutChangingSampling = (u.flags.filteredWithoutChangingSampling != 0);
-        result.calibrationMagAdj = (u.flags.calibrationMagAdj != 0);
-        result.calibrationPhasAdj = (u.flags.calibrationPhasAdj != 0);
-        result.rotationPhaseAdj = (u.flags.rotationPhaseAdj != 0);
-        result.pseudoPhasorVal = (u.flags.pseudoPhasorVal != 0);
-        result.modAppl = (u.flags.modAppl != 0);
+        resultRec.upsampledInterpolation = (u.flags.upsampledInterpolation != 0);
+        resultRec.upsampledExtrapolation = (u.flags.upsampledExtrapolation != 0);
+        resultRec.downsampledReselection = (u.flags.downsampledReselection != 0);
+        resultRec.downsampledFIRFilter = (u.flags.downsampledFIRFilter != 0);
+        resultRec.downsampledNoFIRFilter = (u.flags.downsampledNoFIRFilter != 0);
+        resultRec.filteredWithoutChangingSampling = (u.flags.filteredWithoutChangingSampling != 0);
+        resultRec.calibrationMagAdj = (u.flags.calibrationMagAdj != 0);
+        resultRec.calibrationPhasAdj = (u.flags.calibrationPhasAdj != 0);
+        resultRec.rotationPhaseAdj = (u.flags.rotationPhaseAdj != 0);
+        resultRec.pseudoPhasorVal = (u.flags.pseudoPhasorVal != 0);
+        resultRec.modAppl = (u.flags.modAppl != 0);
     }
 
     if (u?.typeInd) {
-        result.phasorComponent = u.typeInd.phasorComponent;
-        result.phasorType = (u.typeInd.phasorType != 0);
+        resultRec.phasorComponent = u.typeInd.phasorComponent;
+        resultRec.phasorType = (u.typeInd.phasorType != 0);
     }
 
     if (u?.userDef)
-        result.userDef = u.userDef;
+        resultRec.userDef = u.userDef;
 
     if (u?.scaleFactor)
-        result.scaleFactor = u.scaleFactor;
+        resultRec.scaleFactor = u.scaleFactor;
 
     if (u?.angleAdj)
-        result.angleAdj = u.angleAdj;
+        resultRec.angleAdj = u.angleAdj;
 
-    return result;
+    return resultRec;
 }
 
 function AnalogConversionFactorToRec(u : AnalogConversionFactor) : AnalogConversionFactorRec {
-    local result : AnalogConversionFactorRec;
+    local resultRec : AnalogConversionFactorRec;
 
     if (u?.analogFlags)
-        result.analogFlags = u.analogFlags;
+        resultRec.analogFlags = u.analogFlags;
 
     if (u?.userDefinedScaling)
-        result.userDefinedScaling = u.userDefinedScaling;
+        resultRec.userDefinedScaling = u.userDefinedScaling;
 
     if (u?.magScale)
-        result.magScale = u.magScale;
+        resultRec.magScale = u.magScale;
 
     if (u?.offset)
-        result.offset = u.offset;
+        resultRec.offset = u.offset;
 
-    return result;
+    return resultRec;
 }
 
 function DigitalStatusMaskWordsToRec(u : DigitalStatusMaskWords) : DigitalStatusMaskWordsRec {
-    local result : DigitalStatusMaskWordsRec;
+    local resultRec : DigitalStatusMaskWordsRec;
 
     if (u?.normalStatusMask)
-        result.normalStatusMask = u.normalStatusMask;
+        resultRec.normalStatusMask = u.normalStatusMask;
 
     if (u?.validInputsMask)
-        result.validInputsMask = u.validInputsMask;
+        resultRec.validInputsMask = u.validInputsMask;
 
-    return result;
+    return resultRec;
 }
 
 function PMUConfigToRec(pmu : PMUConfig) : PMUConfigRec {
@@ -440,7 +440,7 @@ public function ConfigFrameToPMUCfgRecs(cfgFrm : ConfigFrame) : vector<PMUConfig
 
 # CFG-1 and CFG-2: Table 8  - fields 8-19
 # CFG-3:           Table 10 - fields 9-27
-type PMUConfig = unit(header : FrameHeader, inout cfgMap : ConfigFrameMap&, inout cfgFrm : ConfigFrame) {
+type PMUConfig = unit(header : FrameHeader, cfgMap : ConfigFrameMap&, inout cfgFrm : ConfigFrame) {
     var frameType: FrameTypeCode = FrameTypeCode::Undef;     # stored from header.sync.frameType
     var initialized : bool = False;                          # set to True on %done
     var pmuIdx : uint16 = 0;                                 # position in parent's (cfgFrm's) pmuCfgs
@@ -490,7 +490,7 @@ type PMUConfig = unit(header : FrameHeader, inout cfgMap : ConfigFrameMap&, inou
 
     # service class, measurement window and measurement group delay (CFG-3)
     : bytes &size = 1 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME) {
-        self.svcClass = $$.decode(hilti::Charset::ASCII);
+        self.svcClass = $$.decode(spicy::Charset::ASCII);
     }
     window : int32 &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
     groupDelay : int32 &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
@@ -515,18 +515,18 @@ type NameField = unit(frameType : FrameTypeCode) {
     var trimmedName : string = "";
 
     : bytes &size = 16 if (frameType != FrameTypeCode::CONFIG_3_FRAME) {
-        self.trimmedName = $$.decode(hilti::Charset::ASCII);
+        self.trimmedName = $$.decode(spicy::Charset::ASCII);
         # TODO: spicy bug here (error ...: bound object has expired)
         # This has been fixed, once spicy 1.5 has been out for a while we
         # can go back to trimming on the spicy side instead of the Zeek side.
         # - https://github.com/zeek/spicy/issues/1390
         # - https://github.com/zeek/spicy/pull/1391
-        # self.trimmedName = $$.strip(spicy::Side::Both).decode(hilti::Charset::ASCII);
+        # self.trimmedName = $$.strip(spicy::Side::Both).decode(spicy::Charset::ASCII);
     }
 
     nameLen : uint8 &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
     : bytes &size = self.nameLen if (frameType == FrameTypeCode::CONFIG_3_FRAME) {
-        self.trimmedName = $$.decode(hilti::Charset::UTF8);
+        self.trimmedName = $$.decode(spicy::Charset::UTF8);
     }
 
 } &convert=self.trimmedName;
@@ -644,67 +644,67 @@ type PMUDataRec = tuple<
     digital : vector<uint16>>;
 
 function PhasorEstimateToRec(val : PhasorEstimate) : PhasorEstimateRec {
-    local result : PhasorEstimateRec;
+    local resultRec : PhasorEstimateRec;
 
     if (val?.rectangular) {
         if (val.rectangular?.realValInt)
-            result.rectangularRealValInt = val.rectangular.realValInt;
+            resultRec.rectangularRealValInt = val.rectangular.realValInt;
         if (val.rectangular?.realValFloat)
-            result.rectangularRealValFloat = val.rectangular.realValFloat;
+            resultRec.rectangularRealValFloat = val.rectangular.realValFloat;
         if (val.rectangular?.imaginaryValInt)
-            result.rectangularImaginaryValInt = val.rectangular.imaginaryValInt;
+            resultRec.rectangularImaginaryValInt = val.rectangular.imaginaryValInt;
         if (val.rectangular?.imaginaryValFloat)
-            result.rectangularImaginaryValFloat = val.rectangular.imaginaryValFloat;
+            resultRec.rectangularImaginaryValFloat = val.rectangular.imaginaryValFloat;
     }
 
     if (val?.polar) {
         if (val.polar?.magnitudeValInt)
-            result.polarMagnitudeValInt = val.polar.magnitudeValInt;
+            resultRec.polarMagnitudeValInt = val.polar.magnitudeValInt;
         if (val.polar?.magnitudeValFloat)
-            result.polarMagnitudeValFloat = val.polar.magnitudeValFloat;
+            resultRec.polarMagnitudeValFloat = val.polar.magnitudeValFloat;
         if (val.polar?.angleValInt)
-            result.polarAngleValInt = val.polar.angleValInt;
+            resultRec.polarAngleValInt = val.polar.angleValInt;
         if (val.polar?.angleValFloat)
-            result.polarAngleValFloat = val.polar.angleValFloat;
+            resultRec.polarAngleValFloat = val.polar.angleValFloat;
     }
 
-    return result;
+    return resultRec;
 }
 
 function FrequencyDeviationToRec(val : FrequencyDeviation) : FrequencyDeviationRec {
-    local result : FrequencyDeviationRec;
+    local resultRec : FrequencyDeviationRec;
 
     if (val?.freqDevMhzInt)
-        result.freqDevMhzInt = val.freqDevMhzInt;
+        resultRec.freqDevMhzInt = val.freqDevMhzInt;
 
     if (val?.freqDevMhzFloat)
-        result.freqDevMhzFloat = val.freqDevMhzFloat;
+        resultRec.freqDevMhzFloat = val.freqDevMhzFloat;
 
-    return result;
+    return resultRec;
 }
 
 function ROCOFToRec(val : ROCOF) : ROCOFRec {
-    local result : ROCOFRec;
+    local resultRec : ROCOFRec;
 
     if (val?.rocofInt)
-        result.rocofInt = val.rocofInt;
+        resultRec.rocofInt = val.rocofInt;
 
     if (val?.rocofFloat)
-        result.rocofFloat = val.rocofFloat;
+        resultRec.rocofFloat = val.rocofFloat;
 
-    return result;
+    return resultRec;
 }
 
 function AnalogDataToRec(val : AnalogData) : AnalogDataRec {
-    local result : AnalogDataRec;
+    local resultRec : AnalogDataRec;
 
     if (val?.analogDataInt)
-        result.analogDataInt = val.analogDataInt;
+        resultRec.analogDataInt = val.analogDataInt;
 
     if (val?.analogDataFloat)
-        result.analogDataFloat = val.analogDataFloat;
+        resultRec.analogDataFloat = val.analogDataFloat;
 
-    return result;
+    return resultRec;
 }
 
 function PMUDataToRec(pmuDat : PMUData) : PMUDataRec {
@@ -831,7 +831,7 @@ type NotImplemented = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
 };
 
 # C37.118.2-2011, 6.2.1 Overall message ################################################################################
-public type Frame = unit(inout cfgMap : ConfigFrameMap&) {
+public type Frame = unit(cfgMap : ConfigFrameMap&) {
     var parseError : bool = False;
 
     header : FrameHeader(cfgMap);
