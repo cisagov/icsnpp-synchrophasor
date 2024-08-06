@@ -184,7 +184,7 @@ type NominalLineFreq = unit() {
 # C37.118.2-2011, 6.4 Configuration-1 and -2 frame, Table 8 ############################################################
 # C37.118.2-2011, 6.4 Configuration-3 frame, Table 10 ##################################################################
 
-type ConfigFrame = unit(parent : Frame, inout cfgMap : ConfigFrameMap&) {
+type ConfigFrame = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
     var initialized : bool = False;
     var cfgNum : bool = False;
     var timeBase : uint32 = 1000000;
@@ -440,7 +440,7 @@ public function ConfigFrameToPMUCfgRecs(cfgFrm : ConfigFrame) : vector<PMUConfig
 
 # CFG-1 and CFG-2: Table 8  - fields 8-19
 # CFG-3:           Table 10 - fields 9-27
-type PMUConfig = unit(header : FrameHeader, inout cfgMap : ConfigFrameMap&, inout cfgFrm : ConfigFrame) {
+type PMUConfig = unit(header : FrameHeader, cfgMap : ConfigFrameMap&, inout cfgFrm : ConfigFrame) {
     var frameType: FrameTypeCode = FrameTypeCode::Undef;     # stored from header.sync.frameType
     var initialized : bool = False;                          # set to True on %done
     var pmuIdx : uint16 = 0;                                 # position in parent's (cfgFrm's) pmuCfgs
@@ -831,7 +831,7 @@ type NotImplemented = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
 };
 
 # C37.118.2-2011, 6.2.1 Overall message ################################################################################
-public type Frame = unit(inout cfgMap : ConfigFrameMap&) {
+public type Frame = unit(cfgMap : ConfigFrameMap&) {
     var parseError : bool = False;
 
     header : FrameHeader(cfgMap);
