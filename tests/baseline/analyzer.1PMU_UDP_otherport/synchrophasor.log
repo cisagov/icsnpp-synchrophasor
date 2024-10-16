@@ -7,6 +7,6 @@
 #path	synchrophasor
 #open XXXX-XX-XX-XX-XX-XX
 #fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	version	data_stream_id	history	frame_size_min	frame_size_max	frame_size_tot	data_frame_count	data_rate
-#types	time	string	addr	port	addr	port	string	set[count]	set[count]	string	count	count	count	count	set[count]
+#types	time	string	addr	port	addr	port	enum	set[count]	set[count]	string	count	count	count	count	set[count]
 #close XXXX-XX-XX-XX-XX-XX
 XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.10	4712	192.168.0.60	40713	udp	1	60	2Dd	18	374	476	1	50
