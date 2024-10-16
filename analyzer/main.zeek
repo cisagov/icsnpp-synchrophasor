@@ -31,7 +31,7 @@ export {
         uid: string &log;
         id: conn_id &log;
 
-        proto : string &log &optional;
+        proto : transport_proto &log &optional;
         version : set[count] &log &optional;
         data_stream_id : set[count] &log &optional;
         history : string &log &optional;
@@ -49,7 +49,7 @@ export {
         uid: string &log;
         id: conn_id &log;
 
-        proto : string &log &optional;
+        proto : transport_proto &log &optional;
         frame_type : string &log &optional;
         frame_size : count &log &optional;
         header_time_stamp : time &log &optional;
@@ -64,7 +64,7 @@ export {
         uid: string &log;
         id: conn_id &log;
 
-        proto : string &log &optional;
+        proto : transport_proto &log &optional;
         frame_type : string &log &optional;
         frame_size : count &log &optional;
         header_time_stamp : time &log &optional;
@@ -78,7 +78,7 @@ export {
         uid: string &log;
         id: conn_id &log;
 
-        proto : string &log &optional;
+        proto : transport_proto &log &optional;
         frame_type : string &log &optional;
         frame_size : count &log &optional;
         header_time_stamp : time &log &optional;
@@ -100,7 +100,7 @@ export {
         uid: string &log;
         id: conn_id &log;
 
-        proto : string &log &optional;
+        proto : transport_proto &log &optional;
         frame_type : string &log &optional;
         header_time_stamp : time &log &optional;
         cfg_frame_id : string &log &optional;
@@ -160,7 +160,7 @@ export {
         uid: string &log;
         id: conn_id &log;
 
-        proto : string &log &optional;
+        proto : transport_proto &log &optional;
         frame_type : string &log &optional;
         frame_size : count &log &optional;
         header_time_stamp : time &log &optional;
@@ -180,7 +180,7 @@ export {
         uid: string &log;
         id: conn_id &log;
 
-        proto : string &log &optional;
+        proto : transport_proto &log &optional;
         frame_type : string &log &optional;
         header_time_stamp : time &log &optional;
         data_frame_id : string &log &optional;
@@ -255,7 +255,6 @@ export {
 
 # redefine connection record to contain one of each of the synchrophasor records
 redef record connection += {
-    synchrophasor_proto: string &optional;
     synchrophasor: Synchrophasor_Info &optional;
     synchrophasor_cmd: Synchrophasor_Command &optional;
     synchrophasor_hdr: Synchrophasor_Header &optional;
@@ -315,24 +314,6 @@ event zeek_init() &priority=5 {
                        $policy=log_policy_sychrophasor_data_detail]);
 }
 
-# triggered by SYNCHROPHASOR::FrameHeader::%done, set synchrophasor_proto according to analyzer
-@if (Version::at_least("5.2.2"))
-event analyzer_confirmation_info(atype: AllAnalyzers::Tag, info: AnalyzerConfirmationInfo) {
-  if ( atype == Analyzer::ANALYZER_SYNCHROPHASOR_TCP ) {
-    info$c$synchrophasor_proto = "tcp";
-  } else if ( atype == Analyzer::ANALYZER_SYNCHROPHASOR_UDP ) {
-    info$c$synchrophasor_proto = "udp";
-  }
-@else
-event analyzer_confirmation(c: connection, atype: Analyzer::Tag, aid: count) &priority=5 {
-  if ( atype == Analyzer::ANALYZER_SYNCHROPHASOR_TCP ) {
-    c$synchrophasor_proto = "tcp";
-  } else if ( atype == Analyzer::ANALYZER_SYNCHROPHASOR_UDP ) {
-    c$synchrophasor_proto = "udp";
-  }
-@endif
-}
-
 # set_session_* functions for each of the synchrophasor frame events
 # these functions initialize empty synchrophasor records of the
 # appropriate types within the connection record
@@ -344,7 +325,7 @@ hook set_session_cmd(c: connection) {
             $ts=network_time(),
             $uid=c$uid,
             $id=c$id,
-            $proto="",
+            $proto=get_conn_transport_proto(c$id),
             $version=set(),
             $data_stream_id=set(),
             $history="",
@@ -359,7 +340,7 @@ hook set_session_cmd(c: connection) {
             $ts=network_time(),
             $uid=c$uid,
             $id=c$id,
-            $proto="",
+            $proto=get_conn_transport_proto(c$id),
             $frame_type="",
             $frame_size=0,
             $command="",
@@ -373,7 +354,7 @@ hook set_session_hdr(c: connection) {
             $ts=network_time(),
             $uid=c$uid,
             $id=c$id,
-            $proto="",
+            $proto=get_conn_transport_proto(c$id),
             $version=set(),
             $data_stream_id=set(),
             $history="",
@@ -388,7 +369,7 @@ hook set_session_hdr(c: connection) {
             $ts=network_time(),
             $uid=c$uid,
             $id=c$id,
-            $proto="",
+            $proto=get_conn_transport_proto(c$id),
             $frame_type="",
             $frame_size=0,
             $data="");
@@ -401,7 +382,7 @@ hook set_session_cfg(c: connection) {
             $ts=network_time(),
             $uid=c$uid,
             $id=c$id,
-            $proto="",
+            $proto=get_conn_transport_proto(c$id),
             $version=set(),
             $data_stream_id=set(),
             $history="",
@@ -416,7 +397,7 @@ hook set_session_cfg(c: connection) {
             $ts=network_time(),
             $uid=c$uid,
             $id=c$id,
-            $proto="",
+            $proto=get_conn_transport_proto(c$id),
             $frame_type="",
             $frame_size=0,
             $cont_idx=0,
@@ -433,7 +414,7 @@ hook set_session_data(c: connection) {
             $ts=network_time(),
             $uid=c$uid,
             $id=c$id,
-            $proto="",
+            $proto=get_conn_transport_proto(c$id),
             $version=set(),
             $data_stream_id=set(),
             $history="",
@@ -448,7 +429,7 @@ hook set_session_data(c: connection) {
             $ts=network_time(),
             $uid=c$uid,
             $id=c$id,
-            $proto="",
+            $proto=get_conn_transport_proto(c$id),
             $frame_type="",
             $frame_size=0,
             $pmu_count_expected=0,
@@ -463,9 +444,6 @@ function emit_synchrophasor_log(c: connection) {
     if ( ! c?$synchrophasor )
         return;
 
-    if (c?$synchrophasor_proto)
-      c$synchrophasor$proto = c$synchrophasor_proto;
-
     Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR, c$synchrophasor);
     delete c$synchrophasor;
 }
@@ -474,9 +452,6 @@ function emit_synchrophasor_log(c: connection) {
 function emit_synchrophasor_cmd_log(c: connection) {
     if ( ! c?$synchrophasor_cmd )
         return;
-
-    if (c?$synchrophasor_proto)
-      c$synchrophasor_cmd$proto = c$synchrophasor_proto;
 
     Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_COMMAND, c$synchrophasor_cmd);
     delete c$synchrophasor_cmd;
@@ -487,9 +462,6 @@ function emit_synchrophasor_hdr_log(c: connection) {
     if ( ! c?$synchrophasor_hdr )
         return;
 
-    if (c?$synchrophasor_proto)
-      c$synchrophasor_hdr$proto = c$synchrophasor_proto;
-
     Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_HEADER, c$synchrophasor_hdr);
     delete c$synchrophasor_hdr;
 }
@@ -499,9 +471,6 @@ function emit_synchrophasor_cfg_log(c: connection) {
     if ( ! c?$synchrophasor_cfg )
         return;
 
-    if (c?$synchrophasor_proto)
-      c$synchrophasor_cfg$proto = c$synchrophasor_proto;
-
     Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_CONFIG, c$synchrophasor_cfg);
     delete c$synchrophasor_cfg;
 }
@@ -510,9 +479,6 @@ function emit_synchrophasor_cfg_log(c: connection) {
 function emit_synchrophasor_data_log(c: connection) {
     if ( ! c?$synchrophasor_data )
         return;
-
-    if (c?$synchrophasor_proto)
-      c$synchrophasor_data$proto = c$synchrophasor_proto;
 
     Log::write(SYNCHROPHASOR::LOG_SYNCHROPHASOR_DATA, c$synchrophasor_data);
 
@@ -644,7 +610,7 @@ event SYNCHROPHASOR::ConfigFrame(
                                                    $digital_conv_normal_status_mask = vector(),
                                                    $digital_conv_valid_inputs_mask = vector());
 
-        detail$proto=c$synchrophasor_proto;
+        detail$proto=get_conn_transport_proto(c$id);
         detail$frame_type = info_cfg$frame_type;
         detail$cfg_frame_id=info_cfg$cfg_frame_id;
         detail$header_time_stamp=timeStamp;
@@ -789,7 +755,7 @@ event SYNCHROPHASOR::DataFrame(
                                                          $analog_data=vector(),
                                                          $digital=vector());
 
-                detail$proto=c$synchrophasor_proto;
+                detail$proto=get_conn_transport_proto(c$id);
                 detail$data_frame_id=info_data$data_frame_id;
                 detail$frame_type = info_data$frame_type;
                 detail$header_time_stamp=timeStamp;
