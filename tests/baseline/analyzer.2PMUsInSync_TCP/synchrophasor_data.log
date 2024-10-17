@@ -7,7 +7,7 @@
 #path	synchrophasor_data
 #open XXXX-XX-XX-XX-XX-XX
 #fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	frame_type	frame_size	header_time_stamp	pmu_count_expected	pmu_count_actual	data_frame_id
-#types	time	string	addr	port	addr	port	string	string	count	time	count	count	string
+#types	time	string	addr	port	addr	port	enum	string	count	time	count	count	string
 #close XXXX-XX-XX-XX-XX-XX
 XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	48764	192.168.0.241	4712	tcp	Data	54	-	1	1	dChd8EgFWk2j
 XXXXXXXXXX.XXXXXX	ClEkJM2Vm5giqnMf4h	192.168.0.20	35712	192.168.0.60	4712	tcp	Data	48	-	1	1	dfD0qxAnfwOe

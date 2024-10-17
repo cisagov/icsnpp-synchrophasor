@@ -7,7 +7,7 @@
 #path	synchrophasor_data_detail
 #open XXXX-XX-XX-XX-XX-XX
 #fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	frame_type	header_time_stamp	data_frame_id	pmu_idx	trigger_reason	unlocked_time	pmu_time_quality	data_modified	config_change	pmu_trigger_pickup	data_sorting_type	pmu_sync_error	data_error_indicator	est_rectangular_real	est_rectangular_imaginary	est_polar_magnitude	est_polar_angle	freq_dev_mhz	rocof	analog_data	digital
-#types	time	string	addr	port	addr	port	string	string	time	string	count	count	count	count	bool	bool	bool	bool	bool	count	vector[double]	vector[double]	vector[double]	vector[double]	double	double	vector[double]	vector[count]
+#types	time	string	addr	port	addr	port	enum	string	time	string	count	count	count	count	bool	bool	bool	bool	bool	count	vector[double]	vector[double]	vector[double]	vector[double]	double	double	vector[double]	vector[count]
 #close XXXX-XX-XX-XX-XX-XX
 XXXXXXXXXX.XXXXXX	CHhAvVGS1DHFjwGM9	192.168.0.20	48764	192.168.0.241	4712	tcp	Data	XXXXXXXXXX.XXXXXX	dChd8EgFWk2j	0	0	0	0	F	F	T	F	F	0	0.0,0.0,0.0,0.0	0.0,0.0,0.0,0.0	100043.21875,100038.21875,100042.679688,100048.78125	-1.569556,-1.569494,2.619191,0.524819	0.0	0.0	(empty)	(empty)
 XXXXXXXXXX.XXXXXX	ClEkJM2Vm5giqnMf4h	192.168.0.20	35712	192.168.0.60	4712	tcp	Data	XXXXXXXXXX.XXXXXX	dfD0qxAnfwOe	0	0	0	0	F	F	F	F	F	0	0.0,0.0,0.0	0.0,0.0,0.0	100.074913,99.967857,100.009987	-1.569167,2.619176,0.524813	0.0	0.0	(empty)	0
