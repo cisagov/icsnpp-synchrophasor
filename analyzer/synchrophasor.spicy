@@ -112,7 +112,7 @@ type PhasorConversionFactor = unit(frameType : FrameTypeCode) {
     format : bitfield(32) {
         phunit : 0..7;
         phvalue : 8..31;
-    } &optional if (frameType != FrameTypeCode::CONFIG_3_FRAME);
+    } if (frameType != FrameTypeCode::CONFIG_3_FRAME);
 
     # CFG-3
     flags : bitfield(16) {
@@ -129,7 +129,7 @@ type PhasorConversionFactor = unit(frameType : FrameTypeCode) {
         pseudoPhasorVal : 10;
         _ : 11..14;
         modAppl : 15;
-    } &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    } if (frameType == FrameTypeCode::CONFIG_3_FRAME);
     typeInd : bitfield(8) {
         # Phasor component, coded as follows
         # 111: Reserved
@@ -144,10 +144,10 @@ type PhasorConversionFactor = unit(frameType : FrameTypeCode) {
         # 0―voltage; 1―current
         phasorType : 3;
         _ : 4..7;
-    } &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
-    userDef : uint8 &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
-    scaleFactor : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
-    angleAdj : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    } if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    userDef : uint8 if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    scaleFactor : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    angleAdj : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (frameType == FrameTypeCode::CONFIG_3_FRAME);
 
 };
 
@@ -165,8 +165,8 @@ type AnalogConversionFactor = unit(frameType : FrameTypeCode) {
     }
 
     # CFG-3
-    magScale : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
-    offset : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    magScale : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    offset : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (frameType == FrameTypeCode::CONFIG_3_FRAME);
 };
 
 type DigitalStatusMaskWords = unit() {
@@ -453,7 +453,7 @@ type PMUConfig = unit(header : FrameHeader, cfgMap : ConfigFrameMap&, inout cfgF
         self.frameType = header.sync.frameType;
     }
 
-    globalPMUID : bytes &size=16 &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    globalPMUID : bytes &size=16 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
 
     format : ConfigFormat;
 
@@ -484,16 +484,16 @@ type PMUConfig = unit(header : FrameHeader, cfgMap : ConfigFrameMap&, inout cfgF
     digunit : DigitalStatusMaskWords[self.dgnmr];
 
     # WGS84 datum for PMU location (CFG-3)
-    pmuLat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
-    pmuLon : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
-    pmuElev : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    pmuLat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    pmuLon : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    pmuElev : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
 
     # service class, measurement window and measurement group delay (CFG-3)
     : bytes &size = 1 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME) {
         self.svcClass = $$.decode(spicy::Charset::ASCII);
     }
-    window : int32 &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
-    groupDelay : int32 &optional if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    window : int32 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
+    groupDelay : int32 if (self.frameType == FrameTypeCode::CONFIG_3_FRAME);
 
     # nominal line frequency code and flags
     fnom : uint16;
@@ -524,7 +524,7 @@ type NameField = unit(frameType : FrameTypeCode) {
         # self.trimmedName = $$.strip(spicy::Side::Both).decode(spicy::Charset::ASCII);
     }
 
-    nameLen : uint8 &optional if (frameType == FrameTypeCode::CONFIG_3_FRAME);
+    nameLen : uint8 if (frameType == FrameTypeCode::CONFIG_3_FRAME);
     : bytes &size = self.nameLen if (frameType == FrameTypeCode::CONFIG_3_FRAME) {
         self.trimmedName = $$.decode(spicy::Charset::UTF8);
     }
@@ -778,22 +778,22 @@ public function DataFrameToPMUDataRecs(dataFrm : DataFrame) : vector<PMUDataRec>
 # -magnitude and angle, magnitude first and in engineering units
 # -angle in radians, range –π to + π
 type PhasorEstimate = unit(pmuCfg : PMUConfig) {
-    rectangular : PhasorRectangular(pmuCfg) &optional if (pmuCfg.format.phasorShape == 0);
-    polar       : PhasorPolar(pmuCfg)       &optional if (pmuCfg.format.phasorShape == 1);
+    rectangular : PhasorRectangular(pmuCfg) if (pmuCfg.format.phasorShape == 0);
+    polar       : PhasorPolar(pmuCfg) if (pmuCfg.format.phasorShape == 1);
 };
 
 type PhasorRectangular = unit(pmuCfg : PMUConfig) {
-    realValInt          : int16                                                                        &optional if (pmuCfg.format.phasorFormat == 0);
-    realValFloat        : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.phasorFormat == 1);
-    imaginaryValInt     : int16                                                                        &optional if (pmuCfg.format.phasorFormat == 0);
-    imaginaryValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.phasorFormat == 1);
+    realValInt          : int16 if (pmuCfg.format.phasorFormat == 0);
+    realValFloat        : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
+    imaginaryValInt     : int16 if (pmuCfg.format.phasorFormat == 0);
+    imaginaryValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
 };
 
 type PhasorPolar = unit(pmuCfg : PMUConfig) {
-    magnitudeValInt     : uint16                                                                       &optional if (pmuCfg.format.phasorFormat == 0);
-    magnitudeValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.phasorFormat == 1);
-    angleValInt         : int16                                                                        &optional if (pmuCfg.format.phasorFormat == 0);
-    angleValFloat       : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.phasorFormat == 1);
+    magnitudeValInt     : uint16 if (pmuCfg.format.phasorFormat == 0);
+    magnitudeValFloat   : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
+    angleValInt         : int16 if (pmuCfg.format.phasorFormat == 0);
+    angleValFloat       : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.phasorFormat == 1);
 };
 
 # Frequency deviation from nominal, in mHz
@@ -803,8 +803,8 @@ type PhasorPolar = unit(pmuCfg : PMUConfig) {
 # 32-bit floating point: actual frequency value in IEEE floating-point format.
 # Data type indicated by the FORMAT field in configuration 1, 2, and 3 frames
 type FrequencyDeviation = unit(pmuCfg : PMUConfig) {
-    freqDevMhzInt   : int16                                                                        &optional if (pmuCfg.format.freqFormat == 0);
-    freqDevMhzFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.freqFormat == 1);
+    freqDevMhzInt   : int16 if (pmuCfg.format.freqFormat == 0);
+    freqDevMhzFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.freqFormat == 1);
 };
 
 # ROCOF, in hertz per second times 100
@@ -812,8 +812,8 @@ type FrequencyDeviation = unit(pmuCfg : PMUConfig) {
 # Can be 16-bit integer or IEEE floating point, same as FREQ above. Data type indicated
 # by the FORMAT field in configuration 1, 2, and 3 frames
 type ROCOF = unit(pmuCfg : PMUConfig) {
-    rocofInt   : int16                                                                        &optional if (pmuCfg.format.freqFormat == 0);
-    rocofFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.freqFormat == 1);
+    rocofInt   : int16 if (pmuCfg.format.freqFormat == 0);
+    rocofFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.freqFormat == 1);
 };
 
 # Analog word. 16-bit integer. It could be sampled data such as control signal or
@@ -821,8 +821,8 @@ type ROCOF = unit(pmuCfg : PMUConfig) {
 # Can be 16-bit integer or IEEE floating point. Data type indicated by the FORMAT field
 # in configuration 1, 2, and 3 frames
 type AnalogData = unit(pmuCfg : PMUConfig) {
-    analogDataInt   : int16                                                                        &optional if (pmuCfg.format.analogFormat == 0);
-    analogDataFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big &optional if (pmuCfg.format.analogFormat == 1);
+    analogDataInt   : int16 if (pmuCfg.format.analogFormat == 0);
+    analogDataFloat : real &type=spicy::RealType::IEEE754_Single &byte-order=spicy::ByteOrder::Big if (pmuCfg.format.analogFormat == 1);
 };
 
 # Fallback unit for incorrectly formatted frames #######################################################################
