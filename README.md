@@ -22,17 +22,28 @@ For additional information on this log file, see the *Logging Capabilities* sect
 
 ### Package Manager
 
-This script is available as a package for [Zeek Package Manager](https://docs.zeek.org/projects/package-manager/en/stable/index.html). It requires [Spicy](https://docs.zeek.org/projects/spicy/en/latest/) and the [Zeek Spicy plugin](https://docs.zeek.org/projects/spicy/en/latest/zeek.html).
+This script is available as a package for [Zeek Package Manager](https://docs.zeek.org/projects/package-manager/en/stable/index.html). Zeek includes Spicy support by default as of [v6.0.0](https://github.com/zeek/zeek/releases/tag/v6.0.0).
 
 ```bash
 $ zkg refresh
 $ zkg install icsnpp-synchrophasor
 ```
 
-
 If this package is installed from ZKG, it will be added to the available plugins. This can be tested by running `zeek -NN`. If installed correctly, users will see `ANALYZER_SPICY_SYNCHROPHASOR_TCP` and `ANALYZER_SPICY_SYNCHROPHASOR_UDP` under the list of `Zeek::Spicy` analyzers.
 
 If users have ZKG configured to load packages (see `@load packages` in the [ZKG Quickstart Guide](https://docs.zeek.org/projects/package-manager/en/stable/quickstart.html)), this plugin and these scripts will automatically be loaded and ready to go.
+
+## Installation (via git clone)
+
+```bash
+git clone https://github.com/cisagov/icsnpp-synchrophasor.git
+cd icsnpp-synchrophasor
+mkdir build && cd build && cmake .. && make && cd ..
+```
+
+From here you can install the locally built files through `zkg install ./icsnpp-synchrophasor` and run it like you would normally.
+
+Or you can manually run the parser without installing it: `zeek ./build/synchrophasor.hlto ./analyzer/__load__.zeek  -Cr <pcap>`
 
 ## Logging Capabilities
 
@@ -287,7 +298,7 @@ Full ICS Protocol Parsers:
     * Full Zeek protocol parser for S7comm, S7comm-plus, and COTP
 * [Synchrophasor](https://github.com/cisagov/icsnpp-synchrophasor)
     * Full Zeek protocol parser for Synchrophasor Data Transfer for Power Systems (C37.118)
-* [Profinet IO CM](https://github.com/cisagov/icsnpp-profinet-io-cm)
+* [Profinet IO CM](https://github.com/cisagov/icsnpp-synchrophasor)
     * Full Zeek protocol parser for Profinet I/O Context Manager
 
 Updates to Zeek ICS Protocol Parsers:
