@@ -22,17 +22,28 @@ For additional information on this log file, see the *Logging Capabilities* sect
 
 ### Package Manager
 
-This script is available as a package for [Zeek Package Manager](https://docs.zeek.org/projects/package-manager/en/stable/index.html). It requires [Spicy](https://docs.zeek.org/projects/spicy/en/latest/) and the [Zeek Spicy plugin](https://docs.zeek.org/projects/spicy/en/latest/zeek.html).
+This script is available as a package for [Zeek Package Manager](https://docs.zeek.org/projects/package-manager/en/stable/index.html). Zeek includes Spicy support by default as of [v6.0.0](https://github.com/zeek/zeek/releases/tag/v6.0.0).
 
 ```bash
 $ zkg refresh
 $ zkg install icsnpp-synchrophasor
 ```
 
-
 If this package is installed from ZKG, it will be added to the available plugins. This can be tested by running `zeek -NN`. If installed correctly, users will see `ANALYZER_SPICY_SYNCHROPHASOR_TCP` and `ANALYZER_SPICY_SYNCHROPHASOR_UDP` under the list of `Zeek::Spicy` analyzers.
 
 If users have ZKG configured to load packages (see `@load packages` in the [ZKG Quickstart Guide](https://docs.zeek.org/projects/package-manager/en/stable/quickstart.html)), this plugin and these scripts will automatically be loaded and ready to go.
+
+## Installation (via git clone)
+
+```bash
+git clone https://github.com/cisagov/icsnpp-synchrophasor.git
+cd icsnpp-synchrophasor
+mkdir build && cd build && cmake .. && make && cd ..
+```
+
+From here you can install the locally built files through `zkg install ./icsnpp-synchrophasor` and run it like you would normally.
+
+Or you can manually run the parser without installing it: `zeek ./build/synchrophasor.hlto ./analyzer/__load__.zeek  -Cr <pcap>`
 
 ## Logging Capabilities
 
@@ -266,47 +277,14 @@ All ICSNPP Packages:
 
 * [ICSNPP](https://github.com/cisagov/icsnpp)
 
-Full ICS Protocol Parsers:
-
-* [BACnet](https://github.com/cisagov/icsnpp-bacnet)
-    * Full Zeek protocol parser for BACnet (Building Control and Automation)
-* [BSAP](https://github.com/cisagov/ICSNPP-BSAP)
-    * Full Zeek protocol parser for BSAP (Bristol Standard Asynchronous Protocol) over IP
-    * Full Zeek protocol parser for BSAP Serial comm converted using serial tap device
-* [Ethercat](https://github.com/cisagov/icsnpp-ethercat)
-    * Full Zeek protocol parser for Ethercat
-* [Ethernet/IP and CIP](https://github.com/cisagov/icsnpp-enip)
-    * Full Zeek protocol parser for Ethernet/IP and CIP
-* [GE SRTP](https://github.com/cisagov/icsnpp-ge-srtp)
-    * Full Zeek protocol parser for GE SRTP
-* [Genisys](https://github.com/cisagov/icsnpp-genisys)
-    * Full Zeek protocol parser for Genisys
-* [OPCUA-Binary](https://github.com/cisagov/icsnpp-opcua-binary)
-    * Full Zeek protocol parser for OPC UA (OPC Unified Architecture) - Binary
-* [S7Comm](https://github.com/cisagov/icsnpp-s7comm)
-    * Full Zeek protocol parser for S7comm, S7comm-plus, and COTP
-* [Synchrophasor](https://github.com/cisagov/icsnpp-synchrophasor)
-    * Full Zeek protocol parser for Synchrophasor Data Transfer for Power Systems (C37.118)
-* [Profinet IO CM](https://github.com/cisagov/icsnpp-profinet-io-cm)
-    * Full Zeek protocol parser for Profinet I/O Context Manager
-
-Updates to Zeek ICS Protocol Parsers:
-
-* [DNP3](https://github.com/cisagov/icsnpp-dnp3)
-    * DNP3 Zeek script extending logging capabilities of Zeek's default DNP3 protocol parser
-* [Modbus](https://github.com/cisagov/icsnpp-modbus)
-    * Modbus Zeek script extending logging capabilities of Zeek's default Modbus protocol parser
-
 ### Other Software
 Idaho National Laboratory is a national research facility with a focus on development of software and toolchains to improve the security of criticial infrastructure environments around the world. Please review our other software and scientific offerings at:
 
-[Primary Technology Offerings Page](https://www.inl.gov/inl-initiatives/technology-deployment)
+[Primary Technology Overview Page](https://www.inl.gov/science-technology-overview)
 
 [Supported Open Source Software](https://github.com/idaholab)
 
 [Raw Experiment Open Source Software](https://github.com/IdahoLabResearch)
-
-[Unsupported Open Source Software](https://github.com/IdahoLabCuttingBoard)
 
 ### License
 
