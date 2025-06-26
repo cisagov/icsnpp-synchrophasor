@@ -277,47 +277,14 @@ All ICSNPP Packages:
 
 * [ICSNPP](https://github.com/cisagov/icsnpp)
 
-Full ICS Protocol Parsers:
-
-* [BACnet](https://github.com/cisagov/icsnpp-bacnet)
-    * Full Zeek protocol parser for BACnet (Building Control and Automation)
-* [BSAP](https://github.com/cisagov/ICSNPP-BSAP)
-    * Full Zeek protocol parser for BSAP (Bristol Standard Asynchronous Protocol) over IP
-    * Full Zeek protocol parser for BSAP Serial comm converted using serial tap device
-* [Ethercat](https://github.com/cisagov/icsnpp-ethercat)
-    * Full Zeek protocol parser for Ethercat
-* [Ethernet/IP and CIP](https://github.com/cisagov/icsnpp-enip)
-    * Full Zeek protocol parser for Ethernet/IP and CIP
-* [GE SRTP](https://github.com/cisagov/icsnpp-ge-srtp)
-    * Full Zeek protocol parser for GE SRTP
-* [Genisys](https://github.com/cisagov/icsnpp-genisys)
-    * Full Zeek protocol parser for Genisys
-* [OPCUA-Binary](https://github.com/cisagov/icsnpp-opcua-binary)
-    * Full Zeek protocol parser for OPC UA (OPC Unified Architecture) - Binary
-* [S7Comm](https://github.com/cisagov/icsnpp-s7comm)
-    * Full Zeek protocol parser for S7comm, S7comm-plus, and COTP
-* [Synchrophasor](https://github.com/cisagov/icsnpp-synchrophasor)
-    * Full Zeek protocol parser for Synchrophasor Data Transfer for Power Systems (C37.118)
-* [Profinet IO CM](https://github.com/cisagov/icsnpp-synchrophasor)
-    * Full Zeek protocol parser for Profinet I/O Context Manager
-
-Updates to Zeek ICS Protocol Parsers:
-
-* [DNP3](https://github.com/cisagov/icsnpp-dnp3)
-    * DNP3 Zeek script extending logging capabilities of Zeek's default DNP3 protocol parser
-* [Modbus](https://github.com/cisagov/icsnpp-modbus)
-    * Modbus Zeek script extending logging capabilities of Zeek's default Modbus protocol parser
-
 ### Other Software
 Idaho National Laboratory is a national research facility with a focus on development of software and toolchains to improve the security of criticial infrastructure environments around the world. Please review our other software and scientific offerings at:
 
-[Primary Technology Offerings Page](https://www.inl.gov/inl-initiatives/technology-deployment)
+[Primary Technology Overview Page](https://www.inl.gov/science-technology-overview)
 
 [Supported Open Source Software](https://github.com/idaholab)
 
 [Raw Experiment Open Source Software](https://github.com/IdahoLabResearch)
-
-[Unsupported Open Source Software](https://github.com/IdahoLabCuttingBoard)
 
 ### License
 
