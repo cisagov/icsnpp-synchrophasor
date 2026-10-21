@@ -58,11 +58,29 @@ Or you can manually run the parser without installing it: `zeek ./build/synchrop
 
 #### Overview
 
-This log summarizes, by connection, Synchrophasor frames transmitted over 4712/tcp or 4713/udp to `synchrophasor.log`. The port can be overriden by redefining the `synchrophasor_ports_tcp` and `synchrophasor_ports_udp` variables, respectively, e.g.:
+This log summarizes, by connection, Synchrophasor frames transmitted over 4712/tcp or 4713/udp to `synchrophasor.log`.
 
+#### Custom Port Configuration
+
+The parser uses port-based detection; it does not define payload or DPD signatures. To add a custom TCP port, add it to `SYNCHROPHASOR::synchrophasor_ports_tcp`. To add a custom UDP port, add it to `SYNCHROPHASOR::synchrophasor_ports_udp`. For example, a site policy can add TCP and UDP port 12345 while retaining the standard ports:
+
+```zeek
+redef SYNCHROPHASOR::synchrophasor_ports_tcp += { 12345/tcp };
+redef SYNCHROPHASOR::synchrophasor_ports_udp += { 12345/udp };
 ```
-$ zeek -C -r synchrophasor_tcp.pcap local "SYNCHROPHASOR::synchrophasor_ports_tcp={ 40712/tcp }"
+
+The same settings can be supplied on the command line for offline analysis:
+
+```bash
+zeek -C -r synchrophasor_tcp.pcap local \
+  "SYNCHROPHASOR::synchrophasor_ports_tcp+={ 12345/tcp }"
 ```
+
+At startup, the parser registers each transport-specific set with its TCP or UDP analyzer and also adds the sets to Zeek's `likely_server_ports` direction heuristic. Adding a port only to `likely_server_ports` affects connection direction; it does not register the analyzer or enable parsing.
+
+Port configuration is loaded when Zeek starts. Restart a standalone Zeek process, or deploy/restart the affected workers in a Zeek cluster, after changing site policy. Changing these Zeek sets does not require rebuilding the plugin.
+
+Port registration assigns all traffic whose server port matches a configured entry directly to the corresponding Synchrophasor analyzer. Configure only dedicated Synchrophasor ports: unrelated traffic on a configured port will also be offered to the parser and may produce parser rejection or analyzer-violation notices.
 
 #### Fields Captured
 
@@ -296,4 +314,3 @@ Idaho National Laboratory is a national research facility with a focus on develo
 ### License
 
 Copyright 2023 Battelle Energy Alliance, LLC. Released under the terms of the 3-Clause BSD License (see [`LICENSE`](./LICENSE)).
-
