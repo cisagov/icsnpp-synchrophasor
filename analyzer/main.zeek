@@ -270,9 +270,13 @@ export {
     const synchrophasor_ports_tcp: set[port] = { 4712/tcp } &redef;
     const synchrophasor_ports_udp: set[port] = { 4713/udp } &redef;
 }
-redef likely_server_ports += { synchrophasor_ports_tcp, synchrophasor_ports_udp };
 
 event zeek_init() &priority=5 {
+    # Do this at initialization time so that likely_server_ports receives the
+    # final values of the user-redefinable transport-specific port sets.
+    likely_server_ports += synchrophasor_ports_tcp;
+    likely_server_ports += synchrophasor_ports_udp;
+
     Analyzer::register_for_ports(Analyzer::ANALYZER_SYNCHROPHASOR_TCP, synchrophasor_ports_tcp);
     Analyzer::register_for_ports(Analyzer::ANALYZER_SYNCHROPHASOR_UDP, synchrophasor_ports_udp);
 

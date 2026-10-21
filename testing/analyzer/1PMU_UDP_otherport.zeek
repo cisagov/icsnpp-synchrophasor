@@ -1,5 +1,5 @@
 # @TEST-EXEC: touch synchrophasor.log synchrophasor_cmd.log synchrophasor_cfg.log synchrophasor_cfg_detail.log synchrophasor_hdr.log synchrophasor_data.log synchrophasor_data_detail.log
-# @TEST-EXEC: zeek -C -r ${TRACES}/C37.118_1PMU_UDP_minimal_otherport.pcap "SYNCHROPHASOR::synchrophasor_ports_udp={ 40713/udp }" %INPUT
+# @TEST-EXEC: zeek -C -r ${TRACES}/C37.118_1PMU_UDP_minimal_otherport.pcap "SYNCHROPHASOR::synchrophasor_ports_udp+={ 40713/udp }" %INPUT
 # @TEST-EXEC: zeek-cut id.orig_h id.orig_p id.resp_h id.resp_p proto service < conn.log > conn.tmp && mv conn.tmp conn.log
 # @TEST-EXEC: zeek-cut -n uid cfg_frame_id < synchrophasor_cfg.log > synchrophasor_cfg.tmp && mv synchrophasor_cfg.tmp synchrophasor_cfg.log
 # @TEST-EXEC: zeek-cut -n uid cfg_frame_id < synchrophasor_cfg_detail.log > synchrophasor_cfg_detail.tmp && mv synchrophasor_cfg_detail.tmp synchrophasor_cfg_detail.log
