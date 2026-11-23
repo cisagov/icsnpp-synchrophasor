@@ -831,10 +831,29 @@ type NotImplemented = unit(parent : Frame, cfgMap : ConfigFrameMap&) {
 };
 
 # C37.118.2-2011, 6.2.1 Overall message ################################################################################
-public type Frame = unit(cfgMap : ConfigFrameMap&) {
-    var parseError : bool = False;
+public type Frame = unit(cfgMap : ConfigFrameMap&, inout top : Frames) {
+    # After a gap in the stream (a packet the sensor did not see) or a parse error, look for the next frame header:
+    # sync byte 0xAA, then frame type 0 to 5 with version 1 or 2. Parsing resumes there only if the frame carries a
+    # data stream ID already seen in this direction, so that 0xAA inside phasor data is not taken for a header.
+    %synchronize-at = /\xaa[\x01\x02\x11\x12\x21\x22\x31\x32\x41\x42\x51\x52]/;
 
-    header : FrameHeader(cfgMap);
+    var parseError : bool = False;
+    var first : bool = False;
+
+    on %init {
+        self.first = (top.good == 0);
+    }
+
+    header : FrameHeader(cfgMap) {
+        if ( top.syncing ) {
+            if ( self.header.frameSize >= 16 && (|top.ids| == 0 || self.header.dataStreamId in top.ids) ) {
+                top.syncing = False;
+                confirm;
+            }
+            else
+                reject;
+        }
+    }
     _payload : bytes &size=(self.header.frameSize - 16);
     chk : uint16;
 
@@ -848,6 +867,11 @@ public type Frame = unit(cfgMap : ConfigFrameMap&) {
         *                             ->                  : NotImplemented(self, cfgMap);
     } &parse-from=self._payload if (self.header.sync.frameType);
 
+    on %done {
+        top.good += 1;
+        add top.ids[self.header.dataStreamId];
+    }
+
     on %error {
       self.parseError = True;
     }
@@ -855,5 +879,12 @@ public type Frame = unit(cfgMap : ConfigFrameMap&) {
 
 public type Frames = unit() {
     %context = ConfigFrameMap;
-    : Frame(self.context())[];
+    var good : uint64 = 0;       # frames parsed in this direction
+    var syncing : bool = False;  # looking for the next frame after a gap or an error
+    var ids : set<uint16>;       # data stream IDs seen in this direction
+    : (Frame(self.context(), self) &synchronize)[];
+
+    on %synced {
+        self.syncing = True;
+    }
 };

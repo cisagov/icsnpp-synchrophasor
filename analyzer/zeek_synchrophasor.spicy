@@ -9,6 +9,13 @@ on SYNCHROPHASOR::FrameHeader::%done {
     zeek::confirm_protocol();
 }
 
+# Reject only if no frame was parsed before on this connection; after that, errors and gaps are resynchronized.
 on SYNCHROPHASOR::Frame::%error {
-    zeek::reject_protocol("error while parsing SYNCHROPHASOR frame");
+    if ( self.first )
+        zeek::reject_protocol("error while parsing SYNCHROPHASOR frame");
+}
+
+# Leave a note in weird.log each time parsing resumed after a gap or an error.
+on SYNCHROPHASOR::Frames::%synced {
+    zeek::weird("c37118_gap_resync");
 }
